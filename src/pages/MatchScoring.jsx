@@ -21,24 +21,21 @@ const MatchScoring = () => {
   useEffect(() => {
     async function fetchMatchData() {
       const matchId = searchParams.get("matchId");
-      console.log(matchId, "id");
       if (matchId) {
         try {
           const data = await getMatch(matchId);
           setMatchData(data);
-          console.log(data, "data");
         } catch (error) {
           console.error("Failed to fetch match data:", error);
         }
       }
     }
-    console.log("hello");
     fetchMatchData();
   }, []);
 
   const startMatch = async (matchData) => {
-    setMatchData(matchData);
-    await updateMatch(matchData, dispatch, navigate);
+    await updateMatch(matchData);
+    navigate(`/score-card?matchId=${matchData.matchId}`);
   };
 
   return (

@@ -31,6 +31,7 @@ function SelectBatsman({
   const [outBatsman, setOutBatsman] = useState("");
   const [notOutbatsman, setNotOutBatsman] = useState("");
   const [strikeBatsman, setStrikeBatsman] = useState("");
+  const batsmen = scoreCard?.innings[scoreCard.currentInning - 1].batsmen;
 
   const getBowler = () => {
     let inning = scoreCard?.innings[scoreCard.currentInning - 1];
@@ -58,11 +59,7 @@ function SelectBatsman({
   };
   const handleBatsmanOut = (event) => {
     setOutBatsman(event.target.value);
-    console.log(event.target.value, "batsman");
-    console.log();
-    console.log(
-      striker.name === event.target.value ? nonStriker.name : striker.name
-    );
+
     setNotOutBatsman(
       striker.name === event.target.value ? nonStriker.name : striker.name
     );
@@ -77,7 +74,6 @@ function SelectBatsman({
       return;
     }
     scoreCard = await updateScoreCard(scoreCard, "ADD_RUNS", { runs, extras });
-    console.log(scoreCard, "check scorecard");
     const inning = scoreCard.innings[scoreCard.currentInning - 1];
     const striker = inning.batsmen.find(
       (player) => !player.isOut && !player.isNonStriker
@@ -87,7 +83,6 @@ function SelectBatsman({
     );
     const bowler = inning.bowlers.find((bowler) => bowler.currentBowler);
 
-    console.log(bowler, "bowler");
     if (wicketType === "Run Out") {
       if (outBatsman === striker.name) {
         striker.isOut = true;
@@ -95,7 +90,6 @@ function SelectBatsman({
         striker.wicketType = wicketType;
 
         striker.dismissal = `Run Out (${fielder})`;
-        console.log(striker.dismissal, fielder, "fielder");
         if (strikeBatsman === nextBatsman) {
           nonStriker.isNonStriker = true;
         } else {
@@ -106,9 +100,7 @@ function SelectBatsman({
         nonStriker.isNonStriker = true;
         nonStriker.wicketType = wicketType;
         nonStriker.dismissal = `Run Out (${fielder})`;
-        console.log(nonStriker.dismissal, fielder, "fielder");
 
-        console.log(nonStriker, "data");
         if (strikeBatsman === nextBatsman) {
           striker.isNonStriker = true;
         } else {
@@ -257,11 +249,21 @@ function SelectBatsman({
               value={nextBatsman}
               onChange={handleNextBatsmanChange}
             >
-              {battingTeam.players.map((batsman) => (
-                <MenuItem key={batsman} value={batsman}>
-                  {batsman}
-                </MenuItem>
-              ))}
+              {battingTeam.players
+                .filter((batsman) => {
+                  const batsmanData = batsmen?.find((b) => b.name === batsman);
+                  return !(
+                    batsmanData &&
+                    (batsmanData.isOut ||
+                      (!batsmanData.isOut && !batsmanData.isNonStriker) ||
+                      (!batsmanData.isOut && batsmanData.isNonStriker))
+                  );
+                })
+                .map((batsman) => (
+                  <MenuItem key={batsman} value={batsman}>
+                    {batsman}
+                  </MenuItem>
+                ))}
             </TextField>
           </FormControl>
           {wicketType === "Run Out" && nextBatsman && notOutbatsman && (

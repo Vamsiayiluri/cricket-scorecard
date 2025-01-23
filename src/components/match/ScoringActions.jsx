@@ -9,6 +9,7 @@ import {
   IconButton,
   Stack,
   Tooltip,
+  Fab,
 } from "@mui/material";
 import {
   handleExtraChange,
@@ -24,16 +25,11 @@ const ScorecardActions = ({
   updateMatchData,
   updateThisOver,
   currentOver,
+  extras,
+  setExtras,
   setCurrentOver,
 }) => {
   const [updatedScoreCard, setUpdatedScoreCard] = useState(null);
-  const [extras, setExtras] = useState({
-    wide: false,
-    noBall: false,
-    byes: false,
-    legByes: false,
-    wicket: false,
-  });
   const [runs, setRuns] = useState();
   const [isWicketDialogOpen, setIsWicketDialogOpen] = useState(false);
 
@@ -56,14 +52,24 @@ const ScorecardActions = ({
     updateThisOver(currentOver);
   }, [currentOver]);
   const handleRunClick = async (scoreCard, type, runs) => {
-    const ballSummary = formatBallSummary(runs, extras);
+    if (!extras.wicket) {
+      const ballSummary = formatBallSummary(runs, extras);
+      setCurrentOver((prev) =>
+        Array.isArray(prev) ? [...prev, ballSummary] : [ballSummary]
+      );
+    }
 
     if (extras.wicket) {
       setRuns(runs);
       setIsWicketDialogOpen(true);
       setUpdatedScoreCard(matchData.scoreCard);
     } else {
-      scoreCard = await updateScoreCard(scoreCard, type, { runs, extras });
+      const rules = matchData.scoringRules.extras;
+      scoreCard = await updateScoreCard(scoreCard, type, {
+        runs,
+        extras,
+        rules,
+      });
       updateMatchData(scoreCard);
       setExtras({
         wide: false,
@@ -73,16 +79,16 @@ const ScorecardActions = ({
         wicket: false,
       });
     }
-
-    setCurrentOver((prev) =>
-      Array.isArray(prev) ? [...prev, ballSummary] : [ballSummary]
-    );
   };
   const swapStrikers = (striker, nonStriker) => {
     striker.isNonStriker = !striker.isNonStriker;
     nonStriker.isNonStriker = !nonStriker.isNonStriker;
   };
   const updateWicketAndNewBatsman = async (scoreCard) => {
+    const ballSummary = formatBallSummary(runs, extras);
+    setCurrentOver((prev) =>
+      Array.isArray(prev) ? [...prev, ballSummary] : [ballSummary]
+    );
     const inning = scoreCard.innings[scoreCard.currentInning - 1];
     const striker = inning.batsmen.find(
       (player) => !player.isOut && !player.isNonStriker
@@ -95,13 +101,7 @@ const ScorecardActions = ({
       bowler.currentBowler = false;
       swapStrikers(striker, nonStriker);
     }
-    setExtras({
-      wide: false,
-      noBall: false,
-      byes: false,
-      legByes: false,
-      wicket: false,
-    });
+
     updateMatchData({ ...scoreCard });
   };
 
@@ -183,21 +183,19 @@ const ScorecardActions = ({
           <Grid container spacing={2}>
             {[0, 1, 2, 3, 4, 5, 6].map((runs) => (
               <Grid item xs={6} md={4} key={runs}>
-                <Button
-                  variant="outlined"
+                <Fab
                   color="primary"
                   onClick={() =>
                     handleRunClick(matchData.scoreCard, "ADD_RUNS", runs)
                   }
+                  size="small"
                   sx={{
-                    borderRadius: "50%",
                     width: "40px",
                     height: "40px",
-                    fontSize: "14px",
                   }}
                 >
                   {runs}
-                </Button>
+                </Fab>
               </Grid>
             ))}
           </Grid>

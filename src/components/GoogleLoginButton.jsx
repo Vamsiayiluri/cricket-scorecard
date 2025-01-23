@@ -10,7 +10,6 @@ const GoogleLoginButton = () => {
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
-      console.log("Google login successful!");
 
       navigate("/dashboard");
     } catch (error) {

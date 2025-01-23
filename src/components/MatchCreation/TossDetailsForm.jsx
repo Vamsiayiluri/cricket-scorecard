@@ -2,8 +2,7 @@ import React, { useState } from "react";
 import { Box, FormControl, MenuItem, Stack, TextField } from "@mui/material";
 
 const TossDetailsForm = ({ data, teamData, onUpdate }) => {
-  console.log(data, teamData, "data table");
-  console.log(teamData.teamA.name, "team a data");
+
   const teamAName = teamData.teamA.name;
   const teamBName = teamData.teamB.name;
 

@@ -3,8 +3,6 @@ import {
   Box,
   Typography,
   FormControl,
-  InputLabel,
-  Select,
   MenuItem,
   Button,
   Stack,
@@ -13,19 +11,27 @@ import {
 import { useLocation } from "react-router-dom";
 
 const StartMatch = ({ matchData, onStart }) => {
-  //   let matchData = {};
+  console.log(matchData);
+  console.log(matchData);
   const getBattingTeam = () => {
-    if (matchData.tossDetails.winner === matchData.teams.teamA.name) {
-      if (matchData.tossDetails.decision === "Bat") {
+    if (matchData?.scoreCard.currentInning) {
+      if (matchData.scoreCard.innings[0].team === "teamA") return "teamB";
+      else {
         return "teamA";
-      } else {
-        return "teamB";
       }
-    } else if (matchData.tossDetails.winner === matchData.teams.teamB.name) {
-      if (matchData.tossDetails.decision === "Bat") {
-        return "teamB";
-      } else {
-        return "teamA";
+    } else {
+      if (matchData.tossDetails.winner === matchData.teams.teamA.name) {
+        if (matchData.tossDetails.decision === "Bat") {
+          return "teamA";
+        } else {
+          return "teamB";
+        }
+      } else if (matchData.tossDetails.winner === matchData.teams.teamB.name) {
+        if (matchData.tossDetails.decision === "Bat") {
+          return "teamB";
+        } else {
+          return "teamA";
+        }
       }
     }
   };
@@ -34,77 +40,92 @@ const StartMatch = ({ matchData, onStart }) => {
     }
   }
   const [battingTeam, setBattingTeam] = useState(getBattingTeam());
-  console.log(battingTeam, "team");
   const [players, setplayers] = useState({ batsman1: "", batsman2: "" });
   const [bowler, setBowler] = useState("");
 
   const bowlingTeam = battingTeam === "teamA" ? "teamB" : "teamA";
 
   const handleStart = () => {
+    let updatedMatchData;
     if (!battingTeam || !players.batsman1 || !players.batsman2 || !bowler) {
       alert("Please select the batting team, opening players, and bowler.");
       return;
     }
-
-    const updatedMatchData = {
-      ...matchData,
-      status: "in-progress",
-      scoreCard: {
-        currentInning: 1,
-        innings: [
-          {
-            team: battingTeam,
-            runs: 0,
-            wickets: 0,
-            overs: 0,
-            balls: 0,
-            batsmen: [
-              {
-                name: players.batsman1,
-                runs: 0,
-                balls: 0,
-                isOut: false,
-                isNonStriker: false,
-                fours: 0,
-                sixes: 0,
-              },
-              {
-                name: players.batsman2,
-                runs: 0,
-                balls: 0,
-                isOut: false,
-                isNonStriker: true,
-                fours: 0,
-                sixes: 0,
-              },
-            ],
-            bowlers: [
-              {
-                name: bowler,
-                overs: 0,
-                runs: 0,
-                wickets: 0,
-                balls: 0,
-                currentBowler: true,
-              },
-            ],
-            extras: [
-              {
-                wides: 0,
-                noBalls: 0,
-                byes: 0,
-                legByes: 0,
-                total: 0,
-              },
-            ],
-          },
-        ],
-
-        currentBowler: { name: bowler, overs: 0, runs: 0, wickets: 0 },
-      },
-      updatedAt: new Date(),
+    const inningObj = {
+      team: battingTeam,
+      battingTeam: matchData.teams.battingTeam.name,
+      bowlingTeam: matchData.teams.bowlingTeam?.name,
+      runs: 0,
+      wickets: 0,
+      overs: 0,
+      balls: 0,
+      batsmen: [
+        {
+          name: players.batsman1,
+          runs: 0,
+          balls: 0,
+          isOut: false,
+          isNonStriker: false,
+          fours: 0,
+          sixes: 0,
+        },
+        {
+          name: players.batsman2,
+          runs: 0,
+          balls: 0,
+          isOut: false,
+          isNonStriker: true,
+          fours: 0,
+          sixes: 0,
+        },
+      ],
+      bowlers: [
+        {
+          name: bowler,
+          overs: 0,
+          runs: 0,
+          wickets: 0,
+          balls: 0,
+          currentBowler: true,
+        },
+      ],
+      extras: [
+        {
+          wides: 0,
+          noBalls: 0,
+          byes: 0,
+          legByes: 0,
+          total: 0,
+        },
+      ],
     };
 
+    if (matchData.scoreCard.currentInning) {
+      debugger;
+      const updatedInnings = [...matchData.scoreCard.innings, inningObj];
+
+      updatedMatchData = {
+        ...matchData,
+        scoreCard: {
+          ...matchData.scoreCard,
+          innings: updatedInnings,
+        },
+        updatedAt: new Date(),
+      };
+    } else {
+      updatedMatchData = {
+        ...matchData,
+        status: "in-progress",
+        scoreCard: {
+          currentInning: 1,
+          innings: [inningObj],
+
+          currentBowler: { name: bowler, overs: 0, runs: 0, wickets: 0 },
+        },
+        updatedAt: new Date(),
+      };
+    }
+    console.log(updatedMatchData);
     onStart(updatedMatchData);
   };
 
@@ -113,7 +134,7 @@ const StartMatch = ({ matchData, onStart }) => {
       <Typography variant="h4" gutterBottom>
         Start Match
       </Typography>
-      <Typography>{`Match: ${matchData.matchDetails.name}`}</Typography>
+      <Typography>{`Match: ${matchData.matchDetails.teamA} VS ${matchData.matchDetails.teamB}`}</Typography>
       <Typography>{`Location: ${matchData.matchDetails.location}`}</Typography>
       <Typography>{`Toss Winner: ${matchData.tossDetails.winner}`}</Typography>
       <Typography>{`Decision: ${matchData.tossDetails.decision}`}</Typography>

@@ -7,7 +7,7 @@ const ScoringRulesForm = ({ data, onUpdate }) => {
   );
 
   const handleChange = (field, value) => {
-    const updatedScoringRules = { ...scoringRules, [field]: value };
+    const updatedScoringRules = { ...scoringRules, [field]: Number(value) };
     setScoringRules(updatedScoringRules);
     onUpdate(updatedScoringRules);
   };

@@ -98,20 +98,20 @@ const updateBatsmanStats = (batsman, runs) => {
   batsman.balls += 1;
 };
 
-const handleExtras = (inning, extras, runs, striker, bowler) => {
+const handleExtras = (inning, extras, runs, striker, bowler, rules) => {
   if (extras.noBall) {
-    inning.runs += runs + 1;
-    bowler.runs += 1;
+    inning.runs += runs + rules.noBalls;
+    bowler.runs += rules.noBalls;
     striker.balls += 1;
-    inning.extras[0].noBalls += runs + 1;
+    inning.extras[0].noBalls += runs + rules.noBalls;
     if (!extras.byes && !extras.legByes) {
       striker.runs += runs;
       bowler.runs += runs;
     }
   } else if (extras.wide) {
-    inning.extras[0].wides += runs + 1;
-    inning.runs += runs + 1;
-    bowler.runs += runs + 1;
+    inning.extras[0].wides += runs + rules.wides;
+    inning.runs += runs + rules.wides;
+    bowler.runs += runs + rules.wides;
   } else if (extras.byes || extras.legByes) {
     inning.runs += runs;
     striker.balls += 1;
@@ -122,7 +122,10 @@ const handleExtras = (inning, extras, runs, striker, bowler) => {
     bowler.overs = calculateOvers(bowler.balls);
   }
   inning.extras[0].total =
-    extras.legByes + extras.noBalls + extras.byes + extras.wides;
+    inning.extras[0].legByes +
+    inning.extras[0].noBalls +
+    inning.extras[0].byes +
+    inning.extras[0].wides;
 };
 
 const swapStrikers = (striker, nonStriker) => {
@@ -130,7 +133,7 @@ const swapStrikers = (striker, nonStriker) => {
   nonStriker.isNonStriker = !nonStriker.isNonStriker;
 };
 
-const handleRunClick = (scoreCard, { runs, extras }) => {
+const handleRunClick = (scoreCard, { runs, extras, rules }) => {
   const inning = scoreCard.innings[scoreCard.currentInning - 1];
   const striker = inning.batsmen.find(
     (player) => !player.isOut && !player.isNonStriker
@@ -143,10 +146,8 @@ const handleRunClick = (scoreCard, { runs, extras }) => {
   bowler.balls = bowler.balls || 0;
   bowler.overs = bowler.overs || 0;
 
-  console.log("Before processing:", bowler, striker);
-
   if (extras.noBall || extras.wide || extras.byes || extras.legByes) {
-    handleExtras(inning, extras, runs, striker, bowler);
+    handleExtras(inning, extras, runs, striker, bowler, rules);
   } else {
     updateBatsmanStats(striker, runs);
     updateInningStats(inning, runs);
@@ -162,14 +163,11 @@ const handleRunClick = (scoreCard, { runs, extras }) => {
   if (runs === 6) {
     striker.sixes += 1;
   }
-  console.log(striker, nonStriker, "check 1");
   if (bowler.balls === 6 && !extras.wicket) {
     bowler.currentBowler = false;
-    console.log("chevk between");
     swapStrikers(striker, nonStriker);
   }
-  console.log(striker, nonStriker, "check 2");
-  console.log("Final data:", bowler, striker, inning, scoreCard);
+
   return { ...scoreCard };
 };
 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -16,37 +16,29 @@ import {
 function SelectBowler({
   bowlingTeam,
   isDialogOpen,
+  scoreCard,
   setIsDialogOpen,
   updateNewBowler,
 }) {
-  console.log(bowlingTeam, "select bowler");
-
   const [selectedBowler, setSelectedBowler] = useState("");
+  const [bowlerSelected, setBowlerSelected] = useState("");
+  const bowlers = scoreCard?.innings[scoreCard.currentInning - 1]?.bowlers;
 
-  const handleBallUpdate = () => {
-    setIsDialogOpen(true);
-    // const bowler = scoreCard.currentBowler;
-    // bowler.balls = (bowler.balls || 0) + 1;
-
-    // // If 6 balls are completed, update overs and show the dialog
-    // if (bowler.balls === 6) {
-    //   bowler.overs = (bowler.overs || 0) + 1;
-    //   bowler.balls = 0; // Reset balls after completing an over
-
-    //   setIsDialogOpen(true);
-    // }
-
-    // setScoreCard({ ...scoreCard, currentBowler: bowler });
-  };
+  useEffect(() => {
+    if (bowlers.length === 1) {
+      setBowlerSelected(bowlers[0].name);
+    }
+  }, []);
 
   const handleBowlerChange = (event) => {
     setSelectedBowler(event.target.value);
-    console.log(event.target.value, "bowler");
   };
 
   const updateBowler = () => {
     if (selectedBowler) {
       updateNewBowler(selectedBowler);
+      setBowlerSelected(selectedBowler);
+      setSelectedBowler("");
     } else {
       alert("Please select a bowler");
     }
@@ -69,11 +61,16 @@ function SelectBowler({
               value={selectedBowler}
               onChange={handleBowlerChange}
             >
-              {bowlingTeam?.players.map((player, index) => (
-                <MenuItem key={index} value={player}>
-                  {player}
-                </MenuItem>
-              ))}
+              {bowlingTeam?.players
+                .filter((player) => {
+                  const bowlerData = bowlers.find((b) => b.name === player);
+                  return !(bowlerData && bowlerData.name === bowlerSelected);
+                })
+                .map((player, index) => (
+                  <MenuItem key={index} value={player}>
+                    {player}
+                  </MenuItem>
+                ))}
             </TextField>
           </FormControl>
         </DialogContent>

@@ -12,7 +12,8 @@ export const saveMatch = async (formData, dispatch, navigate) => {
     const matchData = {
       matchId,
       matchDetails: {
-        name: formData.matchDetails.name,
+        teamA: formData.matchDetails.teamA,
+        teamB: formData.matchDetails.teamB,
         location: formData.matchDetails.venue,
         date: formData.matchDetails.dateTime,
       },
@@ -48,21 +49,30 @@ export const saveMatch = async (formData, dispatch, navigate) => {
     await setDoc(doc(db, "matches", matchId), matchData);
     dispatch(addMatch(matchData));
     navigate(`/start-match?matchId=${matchId}`);
-    console.log("Match saved successfully");
   } catch (error) {
     console.error("Error saving match:", error);
     throw error;
   }
 };
 
-export const updateMatch = async (updatedData, dispatch, navigate) => {
+export const updateMatch = async (updatedData) => {
   try {
     const matchRef = doc(db, "matches", updatedData.matchId);
     await updateDoc(matchRef, updatedData);
-    navigate(`/score-card?matchId=${updatedData.matchId}`);
-    console.log("Match updated successfully");
   } catch (error) {
     console.error("Error updating match:", error);
+    throw error;
+  }
+};
+export const updateMatchInnings = async (matchId, innings) => {
+  try {
+    const matchRef = doc(db, "matches", matchId);
+
+    await updateDoc(matchRef, {
+      "scoreCard.currentInning": innings,
+    });
+  } catch (error) {
+    console.error("Error updating match innings:", error);
     throw error;
   }
 };
@@ -75,7 +85,6 @@ export const getMatch = async (matchId) => {
     if (docSnap.exists()) {
       return docSnap.data();
     } else {
-      console.log("No such match exists!");
       return null;
     }
   } catch (error) {

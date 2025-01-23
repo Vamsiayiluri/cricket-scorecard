@@ -48,7 +48,6 @@ const MatchCreationPage = () => {
           ...formData,
           createdAt: new Date().toISOString(),
         };
-        console.log("success");
 
         await saveMatch(matchData, dispatch, navigate);
       } catch (error) {
@@ -117,6 +116,7 @@ const MatchCreationPage = () => {
       sx={{
         width: "100%",
         padding: "16px",
+        overflow: "hidden",
       }}
     >
       <Typography variant="h4" gutterBottom>

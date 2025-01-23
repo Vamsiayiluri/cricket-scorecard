@@ -5,11 +5,9 @@ const MatchDetailsForm = ({ data, onUpdate }) => {
   const [matchDetails, setMatchDetails] = useState(data);
 
   const handleChange = (e) => {
-    console.log(e.target.value);
     const { name, value } = e.target;
     const updatedDetails = { ...matchDetails, [name]: value };
     setMatchDetails(updatedDetails);
-    console.log(updatedDetails, "data");
     onUpdate(updatedDetails);
   };
 

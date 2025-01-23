@@ -26,7 +26,6 @@ const LoginPage = () => {
       const user = userCredential.user;
 
       if (user.emailVerified) {
-        console.log("Login successful!");
         navigate("/dashboard");
       } else {
         const actionCodeSettings = {
@@ -37,8 +36,6 @@ const LoginPage = () => {
         setError(
           "Please verify your email before logging in. Verificaion email sent"
         );
-
-        console.log("Email not verified.");
       }
     } catch (err) {
       setError("Invalid email or password.");

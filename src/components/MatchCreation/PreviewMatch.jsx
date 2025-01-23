@@ -12,6 +12,7 @@ import {
 } from "@mui/material";
 
 const PreviewMatch = ({ data, onConfirm }) => {
+  console.log(data);
   const {
     matchDetails = {},
     teams = {},
@@ -35,7 +36,10 @@ const PreviewMatch = ({ data, onConfirm }) => {
           <Typography variant="h6">Match Details</Typography>
           <Divider />
           <Box sx={{ marginTop: 2 }}>
-            <Typography> {matchDetails.name}</Typography>
+            <Typography>
+              {" "}
+              {matchDetails.teamA} VS {matchDetails.teamB}{" "}
+            </Typography>
             <Typography>Location: {matchDetails.venue}</Typography>
             <Typography>Date: {matchDetails.dateTime}</Typography>
           </Box>

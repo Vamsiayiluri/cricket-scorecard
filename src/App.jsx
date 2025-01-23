@@ -17,6 +17,7 @@ const App = () => {
       <Box
         sx={{
           marginTop: "64px",
+          overflow: "hidden",
         }}
       >
         <Router>
@@ -60,6 +61,14 @@ const App = () => {
               element={
                 <ProtectedRoute>
                   <Scorecard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/start-second-innings"
+              element={
+                <ProtectedRoute>
+                  <MatchScoring />
                 </ProtectedRoute>
               }
             />

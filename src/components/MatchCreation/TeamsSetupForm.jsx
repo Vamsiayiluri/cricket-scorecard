@@ -9,6 +9,7 @@ import {
   Card,
   CardContent,
   IconButton,
+  Divider,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 
@@ -24,12 +25,10 @@ const TeamsSetupForm = ({ data, teamData, onUpdate }) => {
   const [teams, setTeams] = useState(matchData);
 
   const handleTeamChange = (teamKey, field, value) => {
-    console.log(teamKey, field, value, teams);
     const updatedTeams = {
       ...teams,
       [teamKey]: { ...teams[teamKey], [field]: value },
     };
-    console.log(updatedTeams, "yteams");
     setTeams(updatedTeams);
     onUpdate(updatedTeams);
   };
@@ -38,7 +37,6 @@ const TeamsSetupForm = ({ data, teamData, onUpdate }) => {
       ...teams,
       ["teamA"]: { ...teams["teamA"], ["newPlayer"]: "" },
     };
-    console.log(updatedTeams, "yteams");
     setTeams(updatedTeams);
   }, [teams["teamA"].players]);
   useEffect(() => {
@@ -46,7 +44,6 @@ const TeamsSetupForm = ({ data, teamData, onUpdate }) => {
       ...teams,
       ["teamB"]: { ...teams["teamB"], ["newPlayer"]: "" },
     };
-    console.log(updatedTeams, "yteams");
     setTeams(updatedTeams);
   }, [teams["teamB"].players]);
   const addPlayer = (teamKey) => {
@@ -77,28 +74,33 @@ const TeamsSetupForm = ({ data, teamData, onUpdate }) => {
             >
               {idx === 0 ? teamData.teamA : teamData.teamB}
             </Typography>
-            <Stack spacing={3} width="400px">
-              <Stack direction="row" spacing={2}>
-                <TextField
-                  label="Add Player"
-                  placeholder="Enter player name"
-                  value={teams[teamKey].newPlayer}
-                  onChange={(e) =>
-                    handleTeamChange(teamKey, "newPlayer", e.target.value)
-                  }
-                  margin="normal"
-                />
-                <Button onClick={() => addPlayer(teamKey)} variant="outlined">
-                  Add Player
-                </Button>
-              </Stack>
+            <Stack spacing={3} direction="row" width="400px">
+              <TextField
+                label="Add Player"
+                placeholder="Enter player name"
+                value={teams[teamKey].newPlayer}
+                onChange={(e) =>
+                  handleTeamChange(teamKey, "newPlayer", e.target.value)
+                }
+                margin="normal"
+              />
+              <Button
+                sx={{
+                  marginTop: "8px !important",
+                  marginBottom: "23px !important",
+                }}
+                onClick={() => addPlayer(teamKey)}
+                variant="outlined"
+              >
+                Add Player
+              </Button>
             </Stack>
           </Box>
         ))}
       </Stack>
       {(teams.teamA?.players || teams.teamB?.players) && (
         <Box sx={{ marginTop: 2, marginBottom: 5 }}>
-          <Grid container spacing={4}>
+          <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
               {teams.teamA?.players.map((player, index) => (
                 <Card
@@ -110,7 +112,7 @@ const TeamsSetupForm = ({ data, teamData, onUpdate }) => {
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
-                    width: "350px",
+                    width: "240px",
                   }}
                 >
                   <Typography
@@ -140,12 +142,15 @@ const TeamsSetupForm = ({ data, teamData, onUpdate }) => {
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
-                    width: "350px",
+                    width: "240px",
                   }}
                 >
                   <Typography
                     variant="body1"
-                    sx={{ fontWeight: "bold", paddingLeft: "16px" }}
+                    sx={{
+                      fontWeight: "bold",
+                      paddingLeft: "16px",
+                    }}
                   >
                     {player || "Player not named"}
                   </Typography>
