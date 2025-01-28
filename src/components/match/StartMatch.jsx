@@ -130,7 +130,12 @@ const StartMatch = ({ matchData, onStart }) => {
   };
 
   return (
-    <Box p={3}>
+    <Box
+      p={3}
+      sx={{
+        textAlign: "center",
+      }}
+    >
       <Typography variant="h4" gutterBottom>
         Start Match
       </Typography>
@@ -141,7 +146,12 @@ const StartMatch = ({ matchData, onStart }) => {
 
       {battingTeam && (
         <Box mt={3}>
-          <Stack width="300px">
+          <Stack
+            width="400px"
+            sx={{
+              margin: "0 auto",
+            }}
+          >
             <Typography variant="h6" gutterBottom>
               Opening players ({matchData.teams[battingTeam].name}):
             </Typography>
@@ -184,7 +194,12 @@ const StartMatch = ({ matchData, onStart }) => {
 
       {battingTeam && (
         <Box mt={3}>
-          <Stack width="300px">
+          <Stack
+            width="400px"
+            sx={{
+              margin: "0 auto",
+            }}
+          >
             <Typography variant="h6" gutterBottom>
               Opening Bowler ({matchData.teams[bowlingTeam].name}):
             </Typography>
