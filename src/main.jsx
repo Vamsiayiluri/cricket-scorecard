@@ -5,16 +5,36 @@ import { Provider } from "react-redux";
 import store from "./store/store";
 import "./firebase-config";
 import { AuthProvider } from "./context/AuthContext";
-// import { ThemeProvider } from "@mui/material/styles";
+import { ThemeProvider, CssBaseline } from "@mui/material";
+import { createAppTheme } from "./theme";
+import { ToastProvider } from "./context/ToastContext";
+import { ThemeModeProvider } from "./context/ThemeModeContext";
+
+const AppProviders = () => {
+  const [mode, setMode] = React.useState("dark");
+  const toggleMode = React.useCallback(() => {
+    setMode((prev) => (prev === "light" ? "dark" : "light"));
+  }, []);
+  const theme = React.useMemo(() => createAppTheme(mode), [mode]);
+
+  return (
+    <ThemeModeProvider value={{ mode, toggleMode }}>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <ToastProvider>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        </ToastProvider>
+      </ThemeProvider>
+    </ThemeModeProvider>
+  );
+};
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <Provider store={store}>
-      {/* <ThemeProvider theme={theme}> */}
-      <AuthProvider>
-        <App />
-      </AuthProvider>
-      {/* </ThemeProvider> */}
+      <AppProviders />
     </Provider>
   </React.StrictMode>
 );

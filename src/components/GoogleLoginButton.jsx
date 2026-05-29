@@ -1,31 +1,27 @@
 import React from "react";
-import { Button } from "@mui/material";
-import { getAuth, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import AppButton from "./ui/AppButton";
+import { useToast } from "../context/ToastContext";
+import { loginWithGoogle } from "../services/firebase/authService";
 
-const GoogleLoginButton = () => {
+const GoogleLoginButton = ({ redirectTo = "/dashboard" }) => {
   const navigate = useNavigate();
-  const handleGoogleLogin = async () => {
-    const auth = getAuth();
-    const provider = new GoogleAuthProvider();
-    try {
-      await signInWithPopup(auth, provider);
+  const { showToast } = useToast();
 
-      navigate("/dashboard");
+  const handleGoogleLogin = async () => {
+    try {
+      await loginWithGoogle();
+      showToast("Signed in with Google", "success");
+      navigate(redirectTo, { replace: true });
     } catch (error) {
-      console.error("Google login error:", error.message);
+      showToast("Google sign-in failed", "error");
     }
   };
 
   return (
-    <Button
-      variant="outlined"
-      color="primary"
-      onClick={handleGoogleLogin}
-      sx={{ marginTop: "16px" }}
-    >
+    <AppButton variant="outlined" onClick={handleGoogleLogin} sx={{ marginTop: "16px" }}>
       Sign in with Google
-    </Button>
+    </AppButton>
   );
 };
 

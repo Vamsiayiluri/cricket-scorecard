@@ -1,0 +1,83 @@
+rules_version = '2';
+
+/**
+ * Phase D rules — backward-compatible with existing matches.
+ * Missing user profile is treated as scorer (legacy accounts).
+ * Review in Firebase Console before deploy.
+ */
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userDocPath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    function userProfileExists() {
+      return exists(userDocPath());
+    }
+
+    function userRole() {
+      return userProfileExists() ? get(userDocPath()).data.role : 'viewer';
+    }
+
+    function isScorer() {
+      return isSignedIn() && userRole() in ['scorer', 'admin'];
+    }
+
+    function isPublicMatch() {
+      return resource.data.isPublic == true;
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isSignedIn()
+        && request.auth.uid == userId
+        && request.resource.data.role == resource.data.role;
+    }
+
+    match /matches/{matchId} {
+      allow read: if isPublicMatch() || isSignedIn();
+
+      // Create/delete restricted to scorers/admins.
+      allow create, delete: if isScorer();
+
+      // Update rules:
+      // - Scheduled: full scorer edits allowed
+      // - In-progress: block structural edits (teams/toss/scoringRules/scoreCard)
+      // - Completed: allow notes/visibility only (conservative)
+      allow update: if isScorer() && (
+        resource.data.status == 'scheduled'
+        ||
+        (resource.data.status == 'in-progress'
+          && request.resource.data.teams == resource.data.teams
+          && request.resource.data.tossDetails == resource.data.tossDetails
+          && request.resource.data.scoringRules == resource.data.scoringRules
+          && request.resource.data.scoreCard == resource.data.scoreCard
+        )
+        ||
+        (resource.data.status == 'completed'
+          && request.resource.data.teams == resource.data.teams
+          && request.resource.data.tossDetails == resource.data.tossDetails
+          && request.resource.data.scoringRules == resource.data.scoringRules
+          && request.resource.data.scoreCard == resource.data.scoreCard
+          && request.resource.data.matchDetails == resource.data.matchDetails
+          && request.resource.data.status == resource.data.status
+        )
+      );
+    }
+
+    match /teams/{teamId} {
+      allow read: if isSignedIn();
+      allow write: if isScorer();
+    }
+
+    match /players/{playerId} {
+      allow read: if isSignedIn();
+      allow write: if isScorer();
+    }
+  }
+}

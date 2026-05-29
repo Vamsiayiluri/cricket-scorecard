@@ -1,27 +1,35 @@
-import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Navbar from "./components/Navbar";
-import LoginPage from "./pages/LoginPage";
-import RegisterPage from "./pages/RegisterPage";
-import DashboardPage from "./pages/DashboardPage";
-import "./firebase-config";
+import { Suspense, lazy } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import ProtectedRoute from "./pages/ProtectedRoute";
-import MatchCreationPage from "./pages/MatchCreationPage";
-import MatchScoring from "./pages/MatchScoring";
-import Scorecard from "./components/match/ScoreCard";
-import { Box } from "@mui/material";
+import ScorerRoute from "./pages/ScorerRoute";
+import AppShell from "./layout/AppShell";
+import { PageLoading } from "./components/ui/LoadingState";
+
+const LoginPage = lazy(() => import("./pages/LoginPage"));
+const RegisterPage = lazy(() => import("./pages/RegisterPage"));
+const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const MatchCreationPage = lazy(() => import("./pages/MatchCreationPage"));
+const MatchScoring = lazy(() => import("./pages/MatchScoring"));
+const Scorecard = lazy(() => import("./components/match/ScoreCard"));
+const LiveMatchPage = lazy(() => import("./pages/LiveMatchPage"));
+const PublicScorecardPage = lazy(() => import("./pages/PublicScorecardPage"));
+const MatchDetailsPage = lazy(() => import("./pages/MatchDetailsPage"));
+const EditMatchPage = lazy(() => import("./pages/EditMatchPage"));
+
 const App = () => {
   return (
-    <Box>
-      <Navbar />
-      <Box
-        sx={{
-          marginTop: "64px",
-          overflow: "hidden",
-        }}
-      >
-        <Router>
+    <Router>
+      <AppShell>
+        <Suspense fallback={<PageLoading text="Loading page..." />}>
           <Routes>
+            {/* Public viewer routes — no auth required */}
+            <Route path="/live/:matchId" element={<LiveMatchPage />} />
+            <Route path="/scorecard/:matchId" element={<PublicScorecardPage />} />
+
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+
+            {/* Authenticated routes (scorers + viewers) */}
             <Route
               path="/"
               element={
@@ -30,8 +38,6 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
             <Route
               path="/dashboard"
               element={
@@ -40,42 +46,62 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
+
+            {/* Scorer/admin-only routes */}
+            <Route
+              path="/matches/:matchId"
+              element={
+                <ProtectedRoute>
+                  <MatchDetailsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/matches/:matchId/edit"
+              element={
+                <ScorerRoute>
+                  <EditMatchPage />
+                </ScorerRoute>
+              }
+            />
             <Route
               path="/create-match"
               element={
-                <ProtectedRoute>
+                <ScorerRoute>
                   <MatchCreationPage />
-                </ProtectedRoute>
+                </ScorerRoute>
               }
             />
             <Route
               path="/start-match"
               element={
-                <ProtectedRoute>
+                <ScorerRoute>
                   <MatchScoring />
-                </ProtectedRoute>
+                </ScorerRoute>
               }
             />
             <Route
               path="/score-card"
               element={
-                <ProtectedRoute>
+                <ScorerRoute>
                   <Scorecard />
-                </ProtectedRoute>
+                </ScorerRoute>
               }
             />
             <Route
               path="/start-second-innings"
               element={
-                <ProtectedRoute>
+                <ScorerRoute>
                   <MatchScoring />
-                </ProtectedRoute>
+                </ScorerRoute>
               }
             />
+
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
-        </Router>
-      </Box>
-    </Box>
+        </Suspense>
+      </AppShell>
+    </Router>
   );
 };
 

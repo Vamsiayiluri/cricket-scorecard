@@ -1,8 +1,6 @@
-import React, { useState } from "react";
+import React from "react";
 import {
-  Button,
   Typography,
-  Stack,
   Paper,
   Table,
   TableHead,
@@ -10,63 +8,65 @@ import {
   TableCell,
   TableBody,
   Box,
+  TableContainer,
+  Chip,
 } from "@mui/material";
 
 function BattingScoreCard({ battingTeam, currentInning }) {
   return (
-    <>
-      <Paper sx={{ padding: 2 }}>
-        <Typography variant="h6" sx={{ marginBottom: 1 }}>
-          {`Batting Team: ${battingTeam}`}
-        </Typography>
-        <Table>
+    <Box>
+      <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1, color: "text.primary" }}>
+        {`Batting: ${battingTeam}`}
+      </Typography>
+      <TableContainer sx={{ borderRadius: 1, border: "1px solid", borderColor: "divider", bgcolor: "background.paper" }}>
+        <Table stickyHeader size="small">
           <TableHead>
             <TableRow>
-              <TableCell>Batsman</TableCell>
-              <TableCell align="left">Runs</TableCell>
-              <TableCell align="left">Balls</TableCell>
-              <TableCell align="left">4s</TableCell>
-              <TableCell align="left">6s</TableCell>
-              <TableCell align="left">Strike Rate</TableCell>
+              <TableCell sx={{ fontWeight: 700, py: 1, px: 1.5, fontSize: "0.75rem" }}>Batsman</TableCell>
+              <TableCell align="left" sx={{ fontWeight: 700, py: 1, px: 1.5, fontSize: "0.75rem" }}>Runs</TableCell>
+              <TableCell align="left" sx={{ fontWeight: 700, py: 1, px: 1.5, fontSize: "0.75rem" }}>Balls</TableCell>
+              <TableCell align="left" sx={{ fontWeight: 700, py: 1, px: 1.5, fontSize: "0.75rem" }}>4s</TableCell>
+              <TableCell align="left" sx={{ fontWeight: 700, py: 1, px: 1.5, fontSize: "0.75rem" }}>6s</TableCell>
+              <TableCell align="left" sx={{ fontWeight: 700, py: 1, px: 1.5, fontSize: "0.75rem" }}>SR</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {currentInning.batsmen &&
               currentInning.batsmen?.map((player, index) => (
-                <TableRow key={index}>
-                  <TableCell>
-                    <Box>
-                      <span>{player.name}</span>
-                      {!player.isNonStriker && <span> *</span>}
+                <TableRow
+                  key={index}
+                  sx={{ "&:nth-of-type(odd)": { bgcolor: "rgba(255,255,255,0.01)" } }}
+                >
+                  <TableCell sx={{ py: 0.75, px: 1.5, fontSize: "0.8rem" }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Box component="span" sx={{ fontWeight: !player.isNonStriker ? 700 : 500 }}>
+                        {player.name}
+                      </Box>
+                      {!player.isNonStriker && !player.isOut ? (
+                        <Chip size="small" label="STR" color="primary" sx={{ height: 16, fontSize: "0.6rem", px: 0.5 }} />
+                      ) : null}
                     </Box>
-                    <Box>
-                      {player.isOut && player.dismissal && (
-                        <span
-                          style={{
-                            fontStyle: "italic",
-                            color: "#555",
-                          }}
-                        >
-                          {player.dismissal}
-                        </span>
-                      )}
-                    </Box>
+                    {player.isOut && player.dismissal && (
+                      <Typography variant="caption" color="text.secondary" sx={{ fontStyle: "italic", fontSize: "0.675rem", display: "block", mt: 0.25 }}>
+                        {player.dismissal}
+                      </Typography>
+                    )}
                   </TableCell>
-                  <TableCell align="left">{player.runs}</TableCell>
-                  <TableCell align="left">{player.balls}</TableCell>
-                  <TableCell align="left">{player.fours || 0}</TableCell>
-                  <TableCell align="left">{player.sixes || 0}</TableCell>
-                  <TableCell align="left">
+                  <TableCell align="left" sx={{ py: 0.75, px: 1.5, fontSize: "0.8rem", fontWeight: !player.isNonStriker && !player.isOut ? 700 : 500 }}>{player.runs}</TableCell>
+                  <TableCell align="left" sx={{ py: 0.75, px: 1.5, fontSize: "0.8rem" }}>{player.balls}</TableCell>
+                  <TableCell align="left" sx={{ py: 0.75, px: 1.5, fontSize: "0.8rem" }}>{player.fours || 0}</TableCell>
+                  <TableCell align="left" sx={{ py: 0.75, px: 1.5, fontSize: "0.8rem" }}>{player.sixes || 0}</TableCell>
+                  <TableCell align="left" sx={{ py: 0.75, px: 1.5, fontSize: "0.8rem", color: "text.secondary" }}>
                     {player.balls > 0
-                      ? ((player.runs / player.balls) * 100).toFixed(2)
-                      : "0.00"}
+                      ? ((player.runs / player.balls) * 100).toFixed(1)
+                      : "0.0"}
                   </TableCell>
                 </TableRow>
               ))}
           </TableBody>
         </Table>
-      </Paper>
-    </>
+      </TableContainer>
+    </Box>
   );
 }
 

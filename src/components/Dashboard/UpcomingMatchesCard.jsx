@@ -1,30 +1,19 @@
-import React from "react";
-import { Card, CardContent, Typography, List, ListItem } from "@mui/material";
+/* eslint-disable react/prop-types */
+import { memo } from "react";
+import MatchListSection from "./MatchListSection";
+import { formatMatchDate, getMatchTitle } from "../../utils/matchDisplay";
 
-const UpcomingMatchesCard = () => {
-  const upcomingMatches = [
-    { id: 1, title: "Team A vs Team C", date: "Dec 26, 2024, 3:00 PM" },
-    { id: 2, title: "Team B vs Team D", date: "Dec 27, 2024, 10:00 AM" },
-  ];
+const UpcomingMatchesCard = memo(({ matches, loading }) => (
+  <MatchListSection
+    title="Upcoming Matches"
+    matches={matches}
+    loading={loading}
+    emptyTitle="No upcoming matches"
+    emptyDescription="Scheduled matches will appear here after creation."
+    renderLine={(match) => `${getMatchTitle(match)} — ${formatMatchDate(match?.matchDetails?.date)}`}
+  />
+));
 
-  return (
-    <Card>
-      <CardContent>
-        <Typography variant="h5" gutterBottom>
-          Upcoming Matches
-        </Typography>
-        <List>
-          {upcomingMatches.map((match) => (
-            <ListItem key={match.id}>
-              <Typography variant="body1">
-                {match.title} - {match.date}
-              </Typography>
-            </ListItem>
-          ))}
-        </List>
-      </CardContent>
-    </Card>
-  );
-};
+UpcomingMatchesCard.displayName = "UpcomingMatchesCard";
 
 export default UpcomingMatchesCard;

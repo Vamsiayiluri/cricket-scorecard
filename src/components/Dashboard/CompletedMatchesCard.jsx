@@ -1,30 +1,19 @@
-import React from "react";
-import { Card, CardContent, Typography, List, ListItem } from "@mui/material";
+/* eslint-disable react/prop-types */
+import { memo } from "react";
+import MatchListSection from "./MatchListSection";
+import { getCompletedResultLine, getMatchTitle } from "../../utils/matchDisplay";
 
-const CompletedMatchesCard = () => {
-  const completedMatches = [
-    { id: 1, title: "Team A vs Team B", result: "Team A won by 5 wickets" },
-    { id: 2, title: "Team C vs Team D", result: "Team D won by 3 runs" },
-  ];
+const CompletedMatchesCard = memo(({ matches, loading }) => (
+  <MatchListSection
+    title="Completed Matches"
+    matches={matches}
+    loading={loading}
+    emptyTitle="No completed matches"
+    emptyDescription="Finished matches will be listed here once marked completed."
+    renderLine={(match) => `${getMatchTitle(match)} — ${getCompletedResultLine(match)}`}
+  />
+));
 
-  return (
-    <Card>
-      <CardContent>
-        <Typography variant="h5" gutterBottom>
-          Completed Matches
-        </Typography>
-        <List>
-          {completedMatches.map((match) => (
-            <ListItem key={match.id}>
-              <Typography variant="body1">
-                {match.title} - {match.result}
-              </Typography>
-            </ListItem>
-          ))}
-        </List>
-      </CardContent>
-    </Card>
-  );
-};
+CompletedMatchesCard.displayName = "CompletedMatchesCard";
 
 export default CompletedMatchesCard;

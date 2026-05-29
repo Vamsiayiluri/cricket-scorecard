@@ -1,3 +1,34 @@
+import { scoringLog, scoringWarn } from "../utils/scoringDiagnostics";
+
+const sanitizeExtras = (extras = {}) => {
+  const normalized = {
+    wide: Boolean(extras.wide),
+    noBall: Boolean(extras.noBall),
+    byes: Boolean(extras.byes),
+    legByes: Boolean(extras.legByes),
+    wicket: Boolean(extras.wicket),
+  };
+
+  if (normalized.wide) {
+    normalized.noBall = false;
+    normalized.byes = false;
+    normalized.legByes = false;
+  }
+  if (normalized.noBall) {
+    normalized.wide = false;
+  }
+  if (normalized.byes) {
+    normalized.wide = false;
+    normalized.legByes = false;
+  }
+  if (normalized.legByes) {
+    normalized.wide = false;
+    normalized.byes = false;
+  }
+
+  return normalized;
+};
+
 export const handleExtraChange = (event, setExtras) => {
   const { name, checked } = event.target;
 
@@ -49,29 +80,50 @@ export const handleExtraChange = (event, setExtras) => {
   });
 };
 export const updateScoreCard = (scoreCard, action, payload) => {
+  const normalizedPayload =
+    payload?.extras != null
+      ? { ...payload, extras: sanitizeExtras(payload.extras) }
+      : payload;
+  scoringLog("scorecard.mutation.request", {
+    action,
+    currentInning: scoreCard?.currentInning,
+    runs: normalizedPayload?.runs,
+  });
   switch (action) {
     case "ADD_RUNS":
-      return handleRunClick(scoreCard, payload);
+      return handleRunClick(scoreCard, normalizedPayload);
     case "ADD_WICKET":
-      return addWicket(scoreCard, payload);
+      return addWicket(scoreCard, normalizedPayload);
     case "UPDATE_OVERS":
-      return updateOvers(scoreCard, payload);
+      return updateOvers(scoreCard);
     default:
-      console.error("Invalid action");
+      scoringWarn("scorecard.mutation.invalid_action", { action });
       return scoreCard;
   }
 };
 
 function addWicket(scoreCard, { bowlerName, batsmanName }) {
-  const inning = scoreCard.innings[scoreCard.currentInning - 1];
-  const batsman = inning.batsmen.find((player) => player.name === batsmanName);
+  const inning = scoreCard?.innings?.[scoreCard.currentInning - 1];
+  const batsman = inning?.batsmen?.find((player) => player.name === batsmanName);
+  const bowler = inning?.bowlers?.find((b) => b.name === bowlerName);
 
-  batsman.isOut = true;
-  inning.wickets += 1;
+  if (batsman) batsman.isOut = true;
+  if (inning) inning.wickets += 1;
+  if (bowler) bowler.wickets += 1;
 
-  const bowler = scoreCard.bowlers.find((b) => b.name === bowlerName);
-  bowler.wickets += 1;
+  return { ...scoreCard };
+}
 
+function updateOvers(scoreCard) {
+  const inning = scoreCard?.innings?.[scoreCard.currentInning - 1];
+  if (!inning) {
+    return { ...scoreCard };
+  }
+  inning.overs = calculateOvers(inning.balls || 0);
+  inning.bowlers = (inning.bowlers || []).map((bowler) => ({
+    ...bowler,
+    overs: calculateOvers(bowler.balls || 0),
+  }));
   return { ...scoreCard };
 }
 
@@ -99,19 +151,25 @@ const updateBatsmanStats = (batsman, runs) => {
 };
 
 const handleExtras = (inning, extras, runs, striker, bowler, rules) => {
+  const noBallPenalty = rules?.noBalls ?? 1;
+  const widePenalty = rules?.wides ?? 1;
+
   if (extras.noBall) {
-    inning.runs += runs + rules.noBalls;
-    bowler.runs += rules.noBalls;
-    striker.balls += 1;
-    inning.extras[0].noBalls += runs + rules.noBalls;
-    if (!extras.byes && !extras.legByes) {
+    inning.runs += runs + noBallPenalty;
+    inning.extras[0].noBalls += noBallPenalty;
+    bowler.runs += noBallPenalty;
+    if (extras.byes) {
+      inning.extras[0].byes += runs;
+    } else if (extras.legByes) {
+      inning.extras[0].legByes += runs;
+    } else {
       striker.runs += runs;
       bowler.runs += runs;
     }
   } else if (extras.wide) {
-    inning.extras[0].wides += runs + rules.wides;
-    inning.runs += runs + rules.wides;
-    bowler.runs += runs + rules.wides;
+    inning.extras[0].wides += runs + widePenalty;
+    inning.runs += runs + widePenalty;
+    bowler.runs += runs + widePenalty;
   } else if (extras.byes || extras.legByes) {
     inning.runs += runs;
     striker.balls += 1;
@@ -134,6 +192,7 @@ const swapStrikers = (striker, nonStriker) => {
 };
 
 const handleRunClick = (scoreCard, { runs, extras, rules }) => {
+  const normalizedExtras = sanitizeExtras(extras);
   const inning = scoreCard.innings[scoreCard.currentInning - 1];
   const striker = inning.batsmen.find(
     (player) => !player.isOut && !player.isNonStriker
@@ -146,8 +205,13 @@ const handleRunClick = (scoreCard, { runs, extras, rules }) => {
   bowler.balls = bowler.balls || 0;
   bowler.overs = bowler.overs || 0;
 
-  if (extras.noBall || extras.wide || extras.byes || extras.legByes) {
-    handleExtras(inning, extras, runs, striker, bowler, rules);
+  if (
+    normalizedExtras.noBall ||
+    normalizedExtras.wide ||
+    normalizedExtras.byes ||
+    normalizedExtras.legByes
+  ) {
+    handleExtras(inning, normalizedExtras, runs, striker, bowler, rules);
   } else {
     updateBatsmanStats(striker, runs);
     updateInningStats(inning, runs);
@@ -157,13 +221,17 @@ const handleRunClick = (scoreCard, { runs, extras, rules }) => {
   if (runs % 2 === 1) {
     swapStrikers(striker, nonStriker);
   }
-  if (runs === 4) {
+  const shouldCreditBoundary =
+    !normalizedExtras.wide &&
+    !normalizedExtras.byes &&
+    !normalizedExtras.legByes;
+  if (shouldCreditBoundary && runs === 4) {
     striker.fours += 1;
   }
-  if (runs === 6) {
+  if (shouldCreditBoundary && runs === 6) {
     striker.sixes += 1;
   }
-  if (bowler.balls === 6 && !extras.wicket) {
+  if (bowler.balls > 0 && bowler.balls % 6 === 0 && !normalizedExtras.wicket) {
     bowler.currentBowler = false;
     swapStrikers(striker, nonStriker);
   }

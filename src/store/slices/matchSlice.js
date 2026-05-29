@@ -8,7 +8,6 @@ const matchesSlice = createSlice({
   reducers: {
     addMatch: (state, action) => {
       // Add a new match to the matches array
-      console.log(action.payload, "data");
       state.matches.push(action.payload);
     },
     updateMatch: (state, action) => {

@@ -1,13 +1,21 @@
-import React, {
-  Suspense,
-  useCallback,
-  useEffect,
-  useReducer,
-  useState,
-} from "react";
-import { Box, Typography, Grid, Paper, Stack, Button } from "@mui/material";
+import { Suspense, useEffect, useMemo, useReducer, useState } from "react";
+import {
+  Box,
+  Typography,
+  Grid,
+  Paper,
+  Stack,
+  Button,
+  Chip,
+  Divider,
+  Alert,
+} from "@mui/material";
 import { useSearchParams } from "react-router-dom";
-import { getMatch, updateMatch } from "../../services/firebaseServices";
+import {
+  getMatchForScoring,
+  persistMatchCompletion,
+} from "../../services/firebase/scoringService";
+import { scoringLog, scoringWarn } from "../../utils/scoringDiagnostics";
 import ScoringActions from "./ScoringActions";
 import SelectBowler from "./SelectBowler";
 import CurrentOver from "./CurrentOver";
@@ -15,49 +23,57 @@ import EndOfInnings from "./EndOfInnings";
 import BattingScoreCard from "./BattingScoreCard";
 import BowlingScoreCard from "./BowlingScoreCard";
 import MatchScoreCard from "./MatchScoreCard";
+import AppButton from "../ui/AppButton";
+import { useScoringPersistence } from "../../hooks/useScoringPersistence";
+import { useScoringHistory } from "../../hooks/useScoringHistory";
+import AppDialog from "../ui/AppDialog";
+import BallTimeline from "./BallTimeline";
+import { buildMatchCompletionFields } from "../../utils/matchDisplay";
+import {
+  getOverHistoryForInning,
+  getRecentBallsForInning,
+  setTimelineForInning,
+} from "../../utils/scorecardTimeline";
 
 const Scorecard = () => {
-  // const matchData = {
-  //   matchId: "some-unique-id",
-  //   matchDetails: {
-  //     name: "Test Match",
-  //     location: "Stadium",
-  //     date: "2024-12-30",
-  //   },
-  //   teams: {
-  //     teamA: {
-  //       name: "Team A",
-  //       batsmen: ["Player A1", "Player A2", "Player A3"],
-  //     },
-  //     teamB: {
-  //       name: "Team B",
-  //       batsmen: ["Player B1", "Player B2", "Player B3"],
-  //     },
-  //   },
-  //   tossDetails: { winner: "Team A", decision: "bat" },
-  //   scoringRules: { maxOvers: 20, extras: { wides: true, noBalls: true } },
-  //   scoreCard: {
-  //     currentInning: 1,
-  //     innings: [
-  //       {
-  //         team: "teamA",
-  //         runs: 0,
-  //         wickets: 0,
-  //         overs: 0,
-  //         balls: 0,
-  //         batsmen: [
-  //           { name: "Player A1", runs: 0, balls: 0, isOut: false },
-  //           { name: "Player A2", runs: 0, balls: 0, isOut: false },
-  //         ],
-  //       },
-  //     ],
-  //     currentBowler: { name: "Player B1", overs: 0, runs: 0, wickets: 0 },
-  //   },
-  //   status: "in-progress",
-  //   createdAt: "2024-12-24T10:00:00Z",
-  //   updatedAt: "2024-12-24T10:30:00Z",
-  // };
+  // Intentionally uses one-time fetch + local reducer during active scoring.
+  // Live document listeners are avoided here to prevent remote overwrites mid-innings.
+
+  const updateBowlerSelectionInInnings = (scoreCard, selectedBowler) => {
+    const currentInningIndex = scoreCard.currentInning - 1;
+    const updatedInnings = [...scoreCard.innings];
+    const inning = { ...updatedInnings[currentInningIndex] };
+    const existingBowlers = inning.bowlers || [];
+    const bowlerExists = existingBowlers.some(
+      (bowler) => bowler.name === selectedBowler,
+    );
+
+    const updatedBowlers = existingBowlers.map((bowler) => ({
+      ...bowler,
+      currentBowler: bowler.name === selectedBowler,
+    }));
+
+    if (!bowlerExists && selectedBowler) {
+      updatedBowlers.push({
+        name: selectedBowler,
+        balls: 0,
+        overs: 0,
+        runs: 0,
+        wickets: 0,
+        currentBowler: true,
+      });
+    }
+
+    inning.bowlers = updatedBowlers;
+    updatedInnings[currentInningIndex] = inning;
+    return updatedInnings;
+  };
+
   const matchReducer = (state, action) => {
+    scoringLog("reducer.action", {
+      type: action.type,
+      currentInning: state?.scoreCard?.currentInning,
+    });
     switch (action.type) {
       case "SET_MATCH_DATA":
         return {
@@ -65,49 +81,10 @@ const Scorecard = () => {
           ...action.payload,
         };
       case "UPDATE_CURRENT_BOWLER": {
-        const { selectedBowler } = action.payload;
-
-        const currentInningIndex = state.scoreCard.currentInning - 1;
-        const updatedInnings = [...state.scoreCard.innings];
-        const inning = { ...updatedInnings[currentInningIndex] };
-
-        const updatedBowlers = inning.bowlers.map((existingBowler) => ({
-          ...existingBowler,
-          currentBowler: false,
-        }));
-
-        const newBowler = {
-          name: selectedBowler,
-          balls: 0,
-          overs: 0,
-          runs: 0,
-          wickets: 0,
-          currentBowler: true,
-        };
-
-        const bowlerExists = updatedBowlers.some(
-          (bowler) => bowler.name === selectedBowler
+        const updatedInnings = updateBowlerSelectionInInnings(
+          state.scoreCard,
+          action.payload.selectedBowler,
         );
-
-        if (bowlerExists) {
-          for (let bowler of updatedBowlers) {
-            if (bowler.name === selectedBowler) {
-              Object.assign(bowler, newBowler);
-            }
-          }
-        } else {
-          updatedBowlers.push(newBowler);
-        }
-
-        inning.bowlers = updatedBowlers;
-        updatedInnings[currentInningIndex] = inning;
-        const data = {
-          ...state,
-          scoreCard: {
-            ...state.scoreCard,
-            innings: updatedInnings,
-          },
-        };
         return {
           ...state,
           scoreCard: {
@@ -117,21 +94,10 @@ const Scorecard = () => {
         };
       }
       case "UPDATE_EXISTING_BOWLER": {
-        const updatedInnings = [...state.scoreCard.innings];
-        const currentInningIndex = state.scoreCard.currentInning - 1;
-
-        const updatedBowlers = updatedInnings[currentInningIndex].bowlers.map(
-          (bowler) => ({
-            ...bowler,
-            currentBowler: bowler.name === action.payload.selectedBowler,
-          })
+        const updatedInnings = updateBowlerSelectionInInnings(
+          state.scoreCard,
+          action.payload.selectedBowler,
         );
-
-        updatedInnings[currentInningIndex] = {
-          ...updatedInnings[currentInningIndex],
-          bowlers: updatedBowlers,
-        };
-
         return {
           ...state,
           scoreCard: {
@@ -164,7 +130,6 @@ const Scorecard = () => {
   const [searchParams] = useSearchParams();
 
   const [matchData, dispatch] = useReducer(matchReducer, null);
-  const [scoreCard, setScoreCard] = useState(null);
   const [battingTeam, setBattingTeam] = useState(null);
   const [bowlingTeam, setBowlingTeam] = useState(null);
   const [currentInning, setCurrentInning] = useState(null);
@@ -179,30 +144,67 @@ const Scorecard = () => {
   const [showScoreCard, setShowScoreCard] = useState(false);
   const [currentOver, setCurrentOver] = useState([]);
   const [isInningsOver, setIsInningsOver] = useState(false);
+  const [isEndingInnings, setIsEndingInnings] = useState(false);
+  const [isCorrectionDialogOpen, setIsCorrectionDialogOpen] = useState(false);
+  const [isEndInningsDialogOpen, setIsEndInningsDialogOpen] = useState(false);
+  const [completedMatchData, setCompletedMatchData] = useState(null);
+  const matchId = searchParams.get("matchId");
+  const {
+    status: saveStatus,
+    lastSavedAt,
+    hasPendingWrites,
+    hasFailedWrite,
+    enqueuePersist,
+    retryFailed,
+    flushPending,
+  } = useScoringPersistence(matchId);
+  const { canUndo, canRedo, undoCount, redoCount, pushSnapshot, undo, redo } =
+    useScoringHistory();
 
   useEffect(() => {
     async function fetchMatchData() {
-      const matchId = searchParams.get("matchId");
+      scoringLog("scorecard.fetch.start", { matchId });
 
       if (matchId) {
         try {
-          const data = await getMatch(matchId);
+          const data = await getMatchForScoring(matchId);
+          scoringLog("scorecard.fetch.success", {
+            matchId,
+            hasScorecard: Boolean(data?.scoreCard),
+            innings: data?.scoreCard?.innings?.length || 0,
+          });
           dispatch({
             type: "SET_MATCH_DATA",
             payload: data,
           });
         } catch (error) {
-          console.error("Failed to fetch match data:", error);
+          scoringWarn("scorecard.fetch.error", {
+            matchId,
+            error: error?.message || String(error),
+          });
         }
       }
     }
 
     fetchMatchData();
-  }, []);
+  }, [matchId]);
+  useEffect(() => {
+    const shouldWarn = hasPendingWrites || hasFailedWrite;
+    if (!shouldWarn) {
+      return undefined;
+    }
+
+    const handleBeforeUnload = (event) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasFailedWrite, hasPendingWrites]);
   useEffect(() => {
     if (matchData?.scoreCard?.innings?.length > 0) {
       const { scoreCard, teams } = matchData || {};
-      setScoreCard(scoreCard);
       const currentInning = scoreCard.innings[scoreCard.currentInning - 1];
 
       const battingTeam =
@@ -212,24 +214,232 @@ const Scorecard = () => {
       const bowlingTeam =
         currentInning.team === "teamA" ? teams.teamB : teams.teamA;
       setBowlingTeam(bowlingTeam);
-      const { runs, wickets, overs, balls, batsmen, currentBowler } =
-        currentInning;
       setCurrentInning(currentInning);
       // const totalOvers = overs + balls / 6;
       // setTotalOvers(totalOvers);
     }
   }, [matchData]);
-  const handleEndOfInnings = async () => {
-    await updateMatch(matchData);
-    setIsInningsOver(true);
+  const getWicketLimit = (scoreCard) => {
+    const inning = scoreCard?.innings?.[scoreCard.currentInning - 1];
+    const battingPlayers = inning?.team
+      ? matchData?.teams?.[inning.team]?.players
+      : null;
+    return Array.isArray(battingPlayers) && battingPlayers.length > 1
+      ? battingPlayers.length - 1
+      : 10;
   };
-  const updateMatchData = async (scoreCard) => {
+
+  const isTargetReached = (scoreCard) => {
+    if (scoreCard?.currentInning !== 2) {
+      return false;
+    }
+    const firstInningRuns = scoreCard?.innings?.[0]?.runs;
+    const secondInningRuns = scoreCard?.innings?.[1]?.runs;
+    return (
+      typeof firstInningRuns === "number" && secondInningRuns > firstInningRuns
+    );
+  };
+
+  const isSecondInningsComplete = (scoreCard) => {
+    if (scoreCard?.currentInning !== 2) {
+      return false;
+    }
+    const inning = scoreCard?.innings?.[1];
+    const maxOvers = matchData?.scoringRules?.maxOvers;
+    return (
+      isTargetReached(scoreCard) ||
+      (typeof maxOvers === "number" && (inning?.overs || 0) >= maxOvers) ||
+      (inning?.wickets || 0) >= getWicketLimit(scoreCard)
+    );
+  };
+
+  const handleMatchCompletion = async (explicitPayload) => {
+    if (isEndingInnings) {
+      return;
+    }
+    setIsEndingInnings(true);
+    try {
+      const payload = explicitPayload || matchData;
+      const completionFields = buildMatchCompletionFields(payload);
+      const completedPayload = {
+        ...payload,
+        ...completionFields,
+      };
+      await persistMatchCompletion(completedPayload, completionFields);
+      dispatch({
+        type: "SET_MATCH_DATA",
+        payload: completedPayload,
+      });
+      setCompletedMatchData(completedPayload);
+      setShowScoreCard(true);
+      setIsInningsOver(false);
+    } catch (error) {
+      scoringWarn("match.completion.persist_failed", {
+        matchId: matchData?.matchId,
+        error: error?.message || String(error),
+      });
+    } finally {
+      setIsEndingInnings(false);
+    }
+  };
+
+  const handleEndOfInnings = async (explicitPayload) => {
+    if (isEndingInnings) {
+      return;
+    }
+    setIsEndingInnings(true);
+    scoringLog("innings.end.requested", {
+      matchId: matchData?.matchId,
+      currentInning: matchData?.scoreCard?.currentInning,
+    });
+    try {
+      const payload = explicitPayload || matchData;
+      if (payload?.scoreCard?.currentInning === 2) {
+        await handleMatchCompletion(payload);
+        return;
+      }
+      enqueuePersist(payload);
+      await flushPending();
+      setIsInningsOver(true);
+    } catch (error) {
+      scoringWarn("innings.end.persist_failed", {
+        matchId: matchData?.matchId,
+        error: error?.message || String(error),
+      });
+    } finally {
+      setIsEndingInnings(false);
+    }
+  };
+  const applyTimelineMeta = (nextScoreCard, meta) => {
+    if (!meta?.ballSummary) {
+      return nextScoreCard;
+    }
+    const inningIndex = (nextScoreCard?.currentInning || 1) - 1;
+    const inningRecent = [
+      ...getRecentBallsForInning(nextScoreCard, inningIndex),
+      meta.ballSummary,
+    ].slice(-12);
+    const nextOverBalls = Array.isArray(meta?.overBalls) ? meta.overBalls : [];
+    const inningOvers = getOverHistoryForInning(nextScoreCard, inningIndex);
+    if (meta?.overLegalBalls === 6) {
+      inningOvers.push(nextOverBalls);
+    }
+
+    return setTimelineForInning(
+      nextScoreCard,
+      inningIndex,
+      inningRecent,
+      inningOvers.slice(-10),
+    );
+  };
+
+  const createSnapshot = () => ({
+    scoreCard: matchData?.scoreCard,
+    currentOver,
+    extras,
+    currentInning: matchData?.scoreCard?.currentInning || 1,
+  });
+
+  const onBeforeBallCommit = () => {
+    if (!matchData?.scoreCard) {
+      return;
+    }
+    pushSnapshot(createSnapshot());
+  };
+
+  const applyRestoredSnapshot = async (snapshot) => {
+    if (!snapshot?.scoreCard || !matchData) {
+      return;
+    }
     dispatch({
       type: "UPDATE_SCORECARD",
-      payload: scoreCard, // Pass the updated scoreCard here
+      payload: snapshot.scoreCard,
     });
-    let compledBalls =
-      matchData.scoreCard.innings[matchData.scoreCard.currentInning - 1].balls;
+    setCurrentOver(snapshot.currentOver || []);
+    setExtras(
+      snapshot.extras || {
+        wide: false,
+        noBall: false,
+        byes: false,
+        legByes: false,
+        wicket: false,
+      },
+    );
+    const nextMatchData = {
+      ...matchData,
+      scoreCard: snapshot.scoreCard,
+    };
+    enqueuePersist(nextMatchData);
+  };
+
+  const handleUndo = async () => {
+    if (!matchData?.scoreCard || isEndingInnings || saveStatus === "saving") {
+      return;
+    }
+    const previous = undo(createSnapshot(), matchData.scoreCard.currentInning);
+    if (!previous) {
+      return;
+    }
+    await applyRestoredSnapshot(previous);
+  };
+
+  const handleRedo = async () => {
+    if (!matchData?.scoreCard || isEndingInnings || saveStatus === "saving") {
+      return;
+    }
+    const next = redo(createSnapshot(), matchData.scoreCard.currentInning);
+    if (!next) {
+      return;
+    }
+    await applyRestoredSnapshot(next);
+  };
+
+  const handleLastBallCorrection = async () => {
+    await handleUndo();
+    setIsCorrectionDialogOpen(false);
+  };
+
+  const updateMatchData = async (scoreCard, commitMeta) => {
+    const scoreCardWithTimeline = applyTimelineMeta(scoreCard, commitMeta);
+    const nextMatchData = {
+      ...matchData,
+      scoreCard: scoreCardWithTimeline,
+    };
+    const nextInning =
+      scoreCardWithTimeline?.innings?.[
+        scoreCardWithTimeline?.currentInning - 1
+      ];
+
+    scoringLog("score.update.received", {
+      currentInning: scoreCard?.currentInning,
+      balls: nextInning?.balls,
+      wickets: nextInning?.wickets,
+    });
+    dispatch({
+      type: "UPDATE_SCORECARD",
+      payload: scoreCardWithTimeline, // Pass the updated scoreCard here
+    });
+
+    if (isSecondInningsComplete(scoreCardWithTimeline)) {
+      scoringLog("match.completion.triggered", {
+        currentInning: scoreCardWithTimeline?.currentInning,
+        runs: nextInning?.runs,
+        wickets: nextInning?.wickets,
+      });
+      await handleMatchCompletion(nextMatchData);
+      setExtras({
+        wide: false,
+        noBall: false,
+        byes: false,
+        legByes: false,
+        wicket: false,
+      });
+      return;
+    }
+
+    enqueuePersist(nextMatchData);
+
+    let compledBalls = nextInning?.balls || 0;
     const overCompleted = compledBalls % 6 === 0 && compledBalls !== 0;
     const maxOvers = matchData.scoringRules.maxOvers;
 
@@ -237,18 +447,30 @@ const Scorecard = () => {
       overCompleted &&
       !extras.wide &&
       !extras.noBall &&
-      currentInning.overs < maxOvers
+      (nextInning?.overs || 0) < maxOvers
     ) {
+      scoringLog("over.completed.dialog.open", {
+        currentInning: scoreCard?.currentInning,
+        completedBalls: compledBalls,
+      });
       setIsDialogOpen(true);
+      if (commitMeta?.overLegalBalls === 6) {
+        setCurrentOver([]);
+      }
     } else if (
-      currentInning.overs >= maxOvers ||
-      currentInning.wickets === 10
+      (nextInning?.overs || 0) >= maxOvers ||
+      (nextInning?.wickets || 0) >= getWicketLimit(scoreCardWithTimeline)
     ) {
+      scoringLog("innings.end.triggered", {
+        overs: nextInning?.overs,
+        wickets: nextInning?.wickets,
+        maxOvers,
+      });
       // dispatch({
       //   type: "UPDATE_CURRENT_INNING",
       //   payload: { currentInning: 2 },
       // });
-      await handleEndOfInnings();
+      await handleEndOfInnings(nextMatchData);
     }
     setExtras({
       wide: false,
@@ -258,6 +480,35 @@ const Scorecard = () => {
       wicket: false,
     });
   };
+  const saveStatusLabel =
+    saveStatus === "saving"
+      ? "Saving..."
+      : saveStatus === "saved"
+        ? hasPendingWrites
+          ? "Saving latest..."
+          : "Saved"
+        : saveStatus === "failed"
+          ? "Save failed - pending retry"
+          : "Not saved yet";
+
+  const saveStatusColor =
+    saveStatus === "saving"
+      ? "warning"
+      : saveStatus === "saved"
+        ? "success"
+        : saveStatus === "failed"
+          ? "error"
+          : "default";
+  const currentInningIndex = (matchData?.scoreCard?.currentInning || 1) - 1;
+  const recentBalls = useMemo(
+    () => getRecentBallsForInning(matchData?.scoreCard, currentInningIndex),
+    [currentInningIndex, matchData?.scoreCard],
+  );
+  const overHistory = useMemo(
+    () => getOverHistoryForInning(matchData?.scoreCard, currentInningIndex),
+    [currentInningIndex, matchData?.scoreCard],
+  );
+
   const calculateRunRate = (totalRuns, balls) => {
     const totalOvers = balls / 6;
     return totalOvers > 0 ? (totalRuns / totalOvers).toFixed(2) : 0;
@@ -280,8 +531,12 @@ const Scorecard = () => {
   };
 
   const updateNewBowler = (selectedBowler) => {
+    scoringLog("bowler.change.requested", {
+      selectedBowler,
+      currentInning: matchData?.scoreCard?.currentInning,
+    });
     const bowler = currentInning.bowlers.find(
-      (bowler) => bowler.name === selectedBowler
+      (bowler) => bowler.name === selectedBowler,
     );
     if (bowler) {
       dispatch({
@@ -294,11 +549,24 @@ const Scorecard = () => {
         payload: { selectedBowler },
       });
     }
+    if (selectedBowler && matchData?.scoreCard) {
+      const nextScoreCard = {
+        ...matchData.scoreCard,
+        innings: updateBowlerSelectionInInnings(
+          matchData.scoreCard,
+          selectedBowler,
+        ),
+      };
+      enqueuePersist({
+        ...matchData,
+        scoreCard: nextScoreCard,
+      });
+    }
     setCurrentOver([]);
     setIsDialogOpen(false);
   };
   return (
-    <Box sx={{ padding: 2 }}>
+    <Box sx={{ p: { xs: 1, md: 2 } }}>
       {matchData && currentInning && !isInningsOver && !showScoreCard && (
         <Suspense fallback={<div>Loading component...</div>}>
           <SelectBowler
@@ -309,95 +577,458 @@ const Scorecard = () => {
             updateNewBowler={updateNewBowler}
           ></SelectBowler>
 
-          <Grid spacing={3}>
-            {matchData.scoreCard?.currentInning === 2 && (
-              <Stack
-                alignItems="flex-end"
-                sx={{
-                  marginBottom: "12px",
-                  marginRight: "16px",
-                }}
-              >
-                <Button
-                  variant="contained"
-                  color="success"
-                  onClick={() => {
-                    setShowScoreCard(true);
+          <Grid
+            container
+            spacing={3}
+            sx={{
+              marginTop: "8px",
+              marginLeft: "4px",
+            }}
+          >
+            <Grid container spacing={3}>
+              {matchData.scoreCard?.currentInning === 2 && (
+                <Grid
+                  item
+                  xs={12}
+                  sx={{
+                    p: "0 !important",
+                    m: 0,
                   }}
                 >
-                  View Scorecard
-                </Button>
-              </Stack>
-            )}
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={4}>
-                <Paper sx={{ padding: 2, height: "82%" }}>
-                  <Typography variant="h5">{battingTeam.name}</Typography>
-                  <Typography variant="body1">
-                    {" "}
-                    {`Score: ${currentInning.runs}/${
-                      currentInning.wickets
-                    } in ${currentInning.overs.toFixed(1)} overs`}
-                  </Typography>
-                  <Typography variant="body2">
-                    Extras: {currentInning.extras[0].total || 0} (w:
-                    {currentInning.extras[0].wides || 0}, nb:
-                    {currentInning.extras[0].noBalls || 0}, b:
-                    {currentInning.extras[0].byes || 0}, lb:
-                    {currentInning.extras[0].legByes || 0})
-                  </Typography>
-                  <Stack direction="row" spacing={2}>
-                    <Typography variant="body2">
-                      {`Run Rate: ${calculateRunRate(
-                        currentInning.runs,
-                        currentInning.balls
-                      )}`}
-                    </Typography>
-                    {matchData.scoreCard?.currentInning === 2 && (
-                      <Typography variant="body2">
-                        {`Required Run Rate: ${calculateRequiredRunRate(
-                          currentInning.runs,
-                          currentInning.balls
-                        )}`}
-                      </Typography>
-                    )}
-                  </Stack>
-                  <Typography variant="body2">
-                    {getTargetText(
-                      matchData.scoreCard.innings[0].runs,
-                      currentInning.runs,
-                      matchData.scoringRules.maxOvers,
-                      currentInning.balls
-                    )}
-                  </Typography>
-                  <CurrentOver currentOver={currentOver}></CurrentOver>
-                </Paper>
-              </Grid>
-              <Grid item xs={12} md={8}>
-                <Paper sx={{ padding: 2, marginBottom: 3 }}>
-                  <Stack direction="row" justifyContent="space-between">
-                    <Typography variant="h5">Update Scorecard</Typography>
-                    <Button variant="outlined" onClick={handleEndOfInnings}>
-                      {`End ${matchData.scoreCard.currentInning}${
-                        matchData.scoreCard.currentInning === 1 ? "st" : "nd"
-                      } Innings`}
+                  <Stack
+                    alignItems="flex-end"
+                    sx={{
+                      marginBottom: "12px",
+                      marginRight: "16px",
+                      marginTop: "0px",
+                    }}
+                  >
+                    <Button
+                      variant="contained"
+                      color="success"
+                      onClick={() => {
+                        setShowScoreCard(true);
+                      }}
+                    >
+                      View Scorecard
                     </Button>
                   </Stack>
-                  <ScoringActions
-                    matchData={matchData}
-                    battingTeam={battingTeam}
-                    bowlingTeam={bowlingTeam}
-                    updateMatchData={updateMatchData}
-                    updateThisOver={updateThisOver}
-                    currentOver={currentOver}
-                    extras={extras}
-                    setExtras={setExtras}
-                    setCurrentOver={setCurrentOver}
-                  ></ScoringActions>
-                </Paper>
+                </Grid>
+              )}
+              <Grid container spacing={3} sx={{ mx: 0, width: "100%" }}>
+                {/* BROADCAST TELEMETRY OVERLAY CARD */}
+                <Grid item xs={12} md={5} lg={4}>
+                  <Paper
+                    sx={{
+                      p: 3,
+                      height: "100%",
+                      position: "relative",
+                      overflow: "hidden",
+                      background:
+                        "linear-gradient(135deg, #0f172a 0%, #071120 100%)",
+                      border: "1px solid rgba(255, 255, 255, 0.08)",
+                      borderRadius: 1,
+                      boxShadow: "0 20px 40px -15px rgba(0, 0, 0, 0.7)",
+                      "&::before": {
+                        content: '""',
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: 4,
+                        height: "100%",
+                        bgcolor: "primary.main",
+                        boxShadow: "0 0 15px #6C63FF",
+                      },
+                    }}
+                  >
+                    <Stack
+                      direction="row"
+                      justifyContent="space-between"
+                      alignItems="center"
+                      sx={{ mb: 3 }}
+                    >
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontWeight: 800,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.1em",
+                          color: "text.secondary",
+                        }}
+                      >
+                        Live Scoreboard Overlay
+                      </Typography>
+                      <Chip
+                        size="small"
+                        label="ACTIVE"
+                        sx={{
+                          bgcolor: "rgba(34, 197, 94, 0.15)",
+                          color: "#22C55E",
+                          borderColor: "rgba(34, 197, 94, 0.3)",
+                          border: "1px solid",
+                          fontWeight: 800,
+                          fontSize: "0.65rem",
+                        }}
+                        className="live-pulse"
+                      />
+                    </Stack>
+
+                    <Typography
+                      variant="h3"
+                      sx={{
+                        fontWeight: 800,
+                        color: "text.secondary",
+                        letterSpacing: "-0.01em",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      {battingTeam.name}
+                    </Typography>
+
+                    <Stack
+                      direction="row"
+                      alignItems="baseline"
+                      spacing={1}
+                      sx={{ mt: 1.5, mb: 2 }}
+                    >
+                      <Typography
+                        variant="h1"
+                        sx={{
+                          fontSize: { xs: "2.5rem", md: "3.2rem" },
+                          fontWeight: 900,
+                          color: "#F8FAFC",
+                          letterSpacing: "-0.02em",
+                        }}
+                      >
+                        {currentInning.runs}/{currentInning.wickets}
+                      </Typography>
+                      <Typography
+                        variant="body1"
+                        sx={{
+                          color: "text.secondary",
+                          fontWeight: 600,
+                          ml: 1.5,
+                        }}
+                      >
+                        in {currentInning.overs.toFixed(1)} Overs
+                      </Typography>
+                    </Stack>
+
+                    <Box
+                      sx={{
+                        p: 2,
+                        borderRadius: 1,
+                        bgcolor: "rgba(255,255,255,0.02)",
+                        border: "1px solid rgba(255,255,255,0.04)",
+                        mb: 3,
+                      }}
+                    >
+                      <Stack
+                        direction="row"
+                        spacing={3}
+                        justifyContent="space-between"
+                      >
+                        <Box>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              display: "block",
+                              color: "text.secondary",
+                              fontWeight: 700,
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            Run Rate
+                          </Typography>
+                          <Typography
+                            variant="h4"
+                            sx={{ fontWeight: 800, color: "#F8FAFC", mt: 0.5 }}
+                          >
+                            {calculateRunRate(
+                              currentInning.runs,
+                              currentInning.balls,
+                            )}
+                          </Typography>
+                        </Box>
+
+                        {matchData.scoreCard?.currentInning === 2 && (
+                          <Box>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                display: "block",
+                                color: "text.secondary",
+                                fontWeight: 700,
+                                textTransform: "uppercase",
+                              }}
+                            >
+                              Req. Run Rate
+                            </Typography>
+                            <Typography
+                              variant="h4"
+                              sx={{
+                                fontWeight: 800,
+                                color: "#8B5CF6",
+                                mt: 0.5,
+                              }}
+                            >
+                              {calculateRequiredRunRate(
+                                currentInning.runs,
+                                currentInning.balls,
+                              )}
+                            </Typography>
+                          </Box>
+                        )}
+                      </Stack>
+
+                      <Divider
+                        sx={{ my: 1.5, borderColor: "rgba(255,255,255,0.06)" }}
+                      />
+
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          display: "block",
+                          color: "text.secondary",
+                          fontWeight: 700,
+                          textTransform: "uppercase",
+                          mb: 0.5,
+                        }}
+                      >
+                        Extras
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: "text.primary", fontWeight: 600 }}
+                      >
+                        {currentInning.extras[0].total || 0} Total{" "}
+                        <span
+                          style={{
+                            color: "#94A3B8",
+                            fontWeight: 500,
+                            fontSize: "0.8rem",
+                          }}
+                        >
+                          (Wd: {currentInning.extras[0].wides || 0}, Nb:{" "}
+                          {currentInning.extras[0].noBalls || 0}, B:{" "}
+                          {currentInning.extras[0].byes || 0}, Lb:{" "}
+                          {currentInning.extras[0].legByes || 0})
+                        </span>
+                      </Typography>
+                    </Box>
+
+                    {matchData.scoreCard?.currentInning === 2 && (
+                      <Box
+                        sx={{
+                          p: 2,
+                          borderRadius: 1,
+                          bgcolor: "rgba(108, 99, 255, 0.08)",
+                          border: "1px solid rgba(108, 99, 255, 0.2)",
+                          mb: 3,
+                        }}
+                      >
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: "#8b84ff",
+                            fontWeight: 700,
+                            textAlign: "center",
+                          }}
+                        >
+                          {getTargetText(
+                            matchData.scoreCard.innings[0].runs,
+                            currentInning.runs,
+                            matchData.scoringRules.maxOvers,
+                            currentInning.balls,
+                          )}
+                        </Typography>
+                      </Box>
+                    )}
+
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        display: "block",
+                        color: "text.secondary",
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        mb: 1,
+                        letterSpacing: "0.05em",
+                      }}
+                    >
+                      This Over Deliveries
+                    </Typography>
+                    <CurrentOver currentOver={currentOver}></CurrentOver>
+                  </Paper>
+                </Grid>
+
+                {/* OPERATIONAL CONSOLE SCORER CONTROL PANEL */}
+                <Grid item xs={12} md={7} lg={8}>
+                  <Paper
+                    sx={{
+                      p: 3,
+                      border: "1px solid rgba(255, 255, 255, 0.08)",
+                      borderRadius: 1,
+                      boxShadow: "0 20px 40px -15px rgba(0, 0, 0, 0.7)",
+                    }}
+                  >
+                    <Stack
+                      direction={{ xs: "column", md: "row" }}
+                      justifyContent="space-between"
+                      spacing={2.5}
+                      sx={{ mb: 3 }}
+                    >
+                      <Stack spacing={1.25} sx={{ minWidth: 0, flexGrow: 1 }}>
+                        <Typography
+                          variant="h3"
+                          sx={{ fontWeight: 800, color: "#F8FAFC" }}
+                        >
+                          Match Operations Console
+                        </Typography>
+
+                        <Stack
+                          direction="row"
+                          spacing={1.5}
+                          alignItems="center"
+                          flexWrap="wrap"
+                          useFlexGap
+                        >
+                          <Chip
+                            size="small"
+                            color={saveStatusColor}
+                            label={saveStatusLabel}
+                            role="status"
+                            aria-live="polite"
+                            sx={{
+                              fontWeight: 800,
+                              textTransform: "uppercase",
+                              fontSize: "0.675rem",
+                            }}
+                          />
+                          {saveStatus === "saved" && lastSavedAt ? (
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{ fontWeight: 500 }}
+                            >
+                              {`Synced at ${new Date(lastSavedAt).toLocaleTimeString()}`}
+                            </Typography>
+                          ) : null}
+                          {saveStatus === "failed" ? (
+                            <AppButton
+                              size="small"
+                              onClick={retryFailed}
+                              sx={{ minHeight: 28, py: 0.5 }}
+                            >
+                              Retry Save
+                            </AppButton>
+                          ) : null}
+                        </Stack>
+                        {saveStatus === "failed" && (
+                          <Alert severity="error" sx={{ mt: 1, py: 0.25 }}>
+                            Score update is saved locally. Retry when the
+                            connection is stable.
+                          </Alert>
+                        )}
+                      </Stack>
+
+                      <AppButton
+                        variant="outlined"
+                        onClick={() => setIsEndInningsDialogOpen(true)}
+                        disabled={isEndingInnings || saveStatus === "saving"}
+                        sx={{
+                          borderColor: "rgba(239, 68, 68, 0.4)",
+                          color: "#EF4444",
+                          "&:hover": {
+                            borderColor: "#EF4444",
+                            bgcolor: "rgba(239, 68, 68, 0.06)",
+                          },
+                        }}
+                      >
+                        {`End Innings ${matchData.scoreCard.currentInning}`}
+                      </AppButton>
+                    </Stack>
+
+                    <Divider
+                      sx={{ mb: 2, borderColor: "rgba(255,255,255,0.06)" }}
+                    />
+
+                    {/* Operational Toolbar */}
+                    <Stack
+                      direction="row"
+                      spacing={1.2}
+                      sx={{ mb: 3 }}
+                      flexWrap="wrap"
+                      useFlexGap
+                    >
+                      <AppButton
+                        size="small"
+                        variant="outlined"
+                        disabled={
+                          !canUndo || isEndingInnings || saveStatus === "saving"
+                        }
+                        onClick={handleUndo}
+                      >
+                        {`Undo (${undoCount})`}
+                      </AppButton>
+                      <AppButton
+                        size="small"
+                        variant="outlined"
+                        disabled={
+                          !canRedo || isEndingInnings || saveStatus === "saving"
+                        }
+                        onClick={handleRedo}
+                      >
+                        {`Redo (${redoCount})`}
+                      </AppButton>
+                      <AppButton
+                        size="small"
+                        variant="outlined"
+                        color="warning"
+                        disabled={
+                          !canUndo || isEndingInnings || saveStatus === "saving"
+                        }
+                        onClick={() => setIsCorrectionDialogOpen(true)}
+                        sx={{
+                          borderColor: "rgba(245, 158, 11, 0.4)",
+                          color: "#F59E0B",
+                          "&:hover": {
+                            borderColor: "#F59E0B",
+                            bgcolor: "rgba(245, 158, 11, 0.06)",
+                          },
+                        }}
+                      >
+                        Correct Last Ball
+                      </AppButton>
+                    </Stack>
+
+                    {/* Dynamic Score input fields */}
+                    <ScoringActions
+                      matchData={matchData}
+                      battingTeam={battingTeam}
+                      bowlingTeam={bowlingTeam}
+                      updateMatchData={updateMatchData}
+                      updateThisOver={updateThisOver}
+                      currentOver={currentOver}
+                      extras={extras}
+                      setExtras={setExtras}
+                      setCurrentOver={setCurrentOver}
+                      scoringLocked={isEndingInnings}
+                      onBeforeBallCommit={onBeforeBallCommit}
+                    />
+
+                    {/* Over Timeline Node progressions */}
+                    <Box sx={{ mt: 3.5 }}>
+                      <BallTimeline
+                        recentBalls={recentBalls}
+                        overHistory={overHistory}
+                      />
+                    </Box>
+                  </Paper>
+                </Grid>
               </Grid>
             </Grid>
-            <Grid container spacing={3}>
+            <Grid container spacing={3} sx={{ mt: 1 }}>
               <Grid item xs={12} md={6}>
                 <BattingScoreCard
                   battingTeam={battingTeam}
@@ -424,6 +1055,7 @@ const Scorecard = () => {
             bowlingTeam={bowlingTeam}
             currentInning={currentInning}
             setIsInningsOver={setIsInningsOver}
+            inningsNumber={matchData.scoreCard?.currentInning || 1}
           ></EndOfInnings>
         </>
       )}
@@ -433,10 +1065,61 @@ const Scorecard = () => {
           <MatchScoreCard
             showScoreCard={showScoreCard}
             setShowScoreCard={setShowScoreCard}
-            matchData={matchData}
+            matchData={completedMatchData || matchData}
           ></MatchScoreCard>
         </>
       )}
+      <AppDialog
+        open={isEndInningsDialogOpen}
+        onClose={() => setIsEndInningsDialogOpen(false)}
+        title="Confirm Innings Completion"
+        actions={
+          <>
+            <Button onClick={() => setIsEndInningsDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              color="primary"
+              variant="contained"
+              onClick={async () => {
+                await handleEndOfInnings();
+                setIsEndInningsDialogOpen(false);
+              }}
+            >
+              End Innings
+            </Button>
+          </>
+        }
+      >
+        <Typography variant="body2" sx={{ mt: 1 }}>
+          Confirm only if this innings is complete. This action saves the latest
+          score and opens innings transition.
+        </Typography>
+      </AppDialog>
+      <AppDialog
+        open={isCorrectionDialogOpen}
+        onClose={() => setIsCorrectionDialogOpen(false)}
+        title="Correct Last Delivery"
+        actions={
+          <>
+            <Button onClick={() => setIsCorrectionDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              color="warning"
+              variant="contained"
+              onClick={handleLastBallCorrection}
+            >
+              Confirm Correction
+            </Button>
+          </>
+        }
+      >
+        <Typography variant="body2" sx={{ mt: 1 }}>
+          This will undo only the most recent delivery in the current innings
+          and persist the corrected score.
+        </Typography>
+      </AppDialog>
     </Box>
   );
 };

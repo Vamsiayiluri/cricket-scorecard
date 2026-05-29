@@ -57,10 +57,6 @@ const ScorecardTwo = ({ matchData, onScoreUpdate }) => {
     setRuns((prev) => prev + run);
     setBalls((prev) => prev + 1);
 
-    if (balls % 6 === 5) {
-      alert("Over Completed!");
-    }
-
     onScoreUpdate({ runs: runs + run, balls: balls + 1, wickets });
   };
 

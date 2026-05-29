@@ -1,26 +1,42 @@
-import React, { useState } from "react";
-import { Container, Typography, Button, Grid, Box } from "@mui/material";
+/* eslint-disable react/prop-types */
+import { Typography, Box, Chip, Stack } from "@mui/material";
 
 function CurrentOver({ currentOver }) {
   return (
-    <Box sx={{ marginTop: 3 }}>
-      <Typography variant="h6">This Over:</Typography>
-      {currentOver && (
-        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+    <Box sx={{ marginTop: 2 }}>
+      <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 0.5 }}>
+        This Over
+      </Typography>
+      {currentOver?.length ? (
+        <Stack
+          direction="row"
+          spacing={1}
+          flexWrap="wrap"
+          useFlexGap
+          role="list"
+          aria-label="Current over deliveries"
+        >
           {currentOver?.map((ball, index) => (
-            <Typography
+            <Chip
               key={index}
+              role="listitem"
+              size="small"
+              label={ball}
+              color={index === currentOver.length - 1 ? "primary" : "default"}
+              variant={ball?.includes("W") ? "filled" : "outlined"}
               sx={{
-                backgroundColor: "#f0f0f0",
-                padding: "4px 8px",
-                borderRadius: "4px",
-                fontSize: "14px",
+                fontWeight: 700,
+                height: 20,
+                fontSize: "0.7rem",
+                borderRadius: 1,
               }}
-            >
-              {ball}
-            </Typography>
+            />
           ))}
-        </Box>
+        </Stack>
+      ) : (
+        <Typography variant="caption" color="text.secondary">
+          No deliveries in this over yet.
+        </Typography>
       )}
     </Box>
   );

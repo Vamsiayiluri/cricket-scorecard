@@ -1,51 +1,64 @@
-import React, { Suspense, useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-
-import { Box, Typography } from "@mui/material";
-import ScoringActions from "../components/match/ScoringActions";
-import Scorecard from "../components/match/ScoreCard";
-import StartMatch from "../components/match/startMatch";
-import ScorecardTwo from "../components/match/ScorecardTwo";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { getMatch, updateMatch } from "../services/firebaseServices";
+import { Suspense, useState } from "react";
+import StartMatch from "../components/match/StartMatch";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { updateMatchById } from "../services/firebase/matchService";
+import { Paper, Typography } from "@mui/material";
+import { PageLoading } from "../components/ui/LoadingState";
+import ErrorState from "../components/ui/ErrorState";
+import { useToast } from "../context/ToastContext";
+import PageContainer from "../components/ui/PageContainer";
+import useLiveMatch from "../hooks/firebase/useLiveMatch";
 
 const MatchScoring = () => {
-  const [matchData, setMatchData] = useState(null);
-  const [showMatchData, setShowMatchData] = useState(false);
-  const dispatch = useDispatch();
   const navigate = useNavigate();
-
-  const match = useSelector((state) => state.match);
+  const { showToast } = useToast();
   const [searchParams] = useSearchParams();
+  const matchId = searchParams.get("matchId");
+  const [isStarting, setIsStarting] = useState(false);
 
-  useEffect(() => {
-    async function fetchMatchData() {
-      const matchId = searchParams.get("matchId");
-      if (matchId) {
-        try {
-          const data = await getMatch(matchId);
-          setMatchData(data);
-        } catch (error) {
-          console.error("Failed to fetch match data:", error);
-        }
-      }
+  const { data: matchData, loading, error } = useLiveMatch(matchId, {
+    enabled: Boolean(matchId),
+  });
+
+  const startMatch = async (nextMatchData) => {
+    if (isStarting) {
+      return;
     }
-    fetchMatchData();
-  }, []);
-
-  const startMatch = async (matchData) => {
-    await updateMatch(matchData);
-    navigate(`/score-card?matchId=${matchData.matchId}`);
+    setIsStarting(true);
+    try {
+      await updateMatchById(nextMatchData);
+      navigate(`/score-card?matchId=${nextMatchData.matchId}`);
+    } catch {
+      showToast("Unable to start match. Please try again.", "error");
+    } finally {
+      setIsStarting(false);
+    }
   };
 
   return (
-    <Box sx={{ padding: 3 }}>
+    <PageContainer title="Match Setup" subtitle="Choose opening players and bowler before innings starts.">
+      <Paper
+        sx={{
+          p: { xs: 2, md: 2.5 },
+          mb: 2,
+          background:
+            "linear-gradient(120deg, rgba(108,99,255,0.24) 0%, rgba(139,92,246,0.16) 50%, rgba(34,197,94,0.1) 100%)",
+        }}
+      >
+        <Typography variant="h3">Pre-Match Console</Typography>
+        <Typography variant="body2" color="text.secondary">
+          Configure opening batter pair and first bowler with a clean live-scoring workflow.
+        </Typography>
+      </Paper>
+      {loading && <PageLoading text="Loading match details..." />}
+      {error && <ErrorState message={error.message || "Failed to fetch match data."} />}
+      {!matchId && !loading && <ErrorState message="Match id missing in URL." />}
       {matchData && (
-        <Suspense fallback={<div>Loading component...</div>}>
-          <StartMatch matchData={matchData} onStart={startMatch}></StartMatch>
+        <Suspense fallback={<PageLoading text="Loading setup..." />}>
+          <StartMatch matchData={matchData} onStart={startMatch} isStarting={isStarting} />
         </Suspense>
       )}
-    </Box>
+    </PageContainer>
   );
 };
 

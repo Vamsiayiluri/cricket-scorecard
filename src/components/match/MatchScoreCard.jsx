@@ -3,17 +3,20 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  Box,
   Typography,
   Stack,
   styled,
   Fab,
   Chip,
+  Paper,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import BattingScoreCard from "./BattingScoreCard";
 import BowlingScoreCard from "./BowlingScoreCard";
 import KeyboardBackspaceIcon from "@mui/icons-material/KeyboardBackspace";
-import { Margin } from "@mui/icons-material";
+import { getMatchOutcome } from "../../utils/matchDisplay";
+import AppButton from "../ui/AppButton";
 function MatchScoreCard({ showScoreCard, setShowScoreCard, matchData }) {
   const teamA = matchData.scoreCard.innings[0].team;
   const teamB = matchData.scoreCard.innings[1].team;
@@ -41,68 +44,83 @@ function MatchScoreCard({ showScoreCard, setShowScoreCard, matchData }) {
   const handleBack = () => {
     setShowScoreCard(false);
   };
+  const outcome = getMatchOutcome(matchData);
 
   return (
     <>
-      <Fab
-        color="secondary"
+      <AppButton
         onClick={handleBack}
-        size="large"
-        sx={{
-          width: "40px",
-          height: "40px",
-          fontSize: "14px",
-          marginBottom: "12px",
-        }}
+        variant="outlined"
+        startIcon={<KeyboardBackspaceIcon sx={{ fontSize: 16 }} />}
+        sx={{ minHeight: 32, py: 0.5, px: 1.5, mb: 1.5 }}
       >
-        <KeyboardBackspaceIcon></KeyboardBackspaceIcon>
-      </Fab>
+        Back
+      </AppButton>
 
       {showScoreCard && (
-        <Stack spacing={2}>
+        <Stack spacing={1.5}>
+          <Box sx={{ p: 1.5, border: "1px solid rgba(255, 255, 255, 0.05)", borderRadius: 1, bgcolor: "background.paper" }}>
+            <Typography variant="h3" sx={{ fontWeight: 800 }}>
+              {outcome?.isTie
+                ? "Match Tied"
+                : `${outcome?.winner || "Winner"} won ${outcome?.margin || ""}`}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.25 }}>
+              Player of the Match: To be announced
+            </Typography>
+          </Box>
           <Accordion
             expanded={expanded === "teamA"}
             onChange={handleAccordionChange("teamA")}
+            sx={{
+              borderRadius: "8px !important",
+              boxShadow: "none",
+              border: "1px solid rgba(255, 255, 255, 0.05)",
+              bgcolor: "background.paper",
+              "&::before": { display: "none" },
+              "&.Mui-expanded": { margin: "0 0 12px 0" },
+            }}
           >
             <CustomAccordionSummary
-              expandIcon={<ExpandMoreIcon />}
+              expandIcon={<ExpandMoreIcon sx={{ fontSize: 18 }} />}
               aria-controls="panel1a-content"
               id="panel1a-header"
+              sx={{ minHeight: 40, "&.Mui-expanded": { minHeight: 40 } }}
             >
-              <Typography variant="h6">
+              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                 {matchData.teams[teamA].name} Scorecard
               </Typography>
               <Chip
-                size="medium"
+                size="small"
                 color="secondary"
                 label={`${matchData.scoreCard.innings[0].runs}/${
                   matchData.scoreCard.innings[0].wickets
-                } in ${matchData.scoreCard.innings[0].overs.toFixed(1)} overs`}
+                } in ${matchData.scoreCard.innings[0].overs.toFixed(1)} ov`}
                 variant="outlined"
+                sx={{ height: 18, fontSize: "0.675rem" }}
               ></Chip>
             </CustomAccordionSummary>
-            <AccordionDetails>
-              <Stack spacing={3}>
+            <AccordionDetails sx={{ p: 1.5, pt: 0 }}>
+              <Stack spacing={1.5}>
                 <BattingScoreCard
                   battingTeam={firstbattingTeam}
                   currentInning={matchData.scoreCard.innings[0]}
                 ></BattingScoreCard>
-                <Typography variant="h6">
-                  {" "}
-                  {`Total :${matchData.scoreCard.innings[0].runs}/${
-                    matchData.scoreCard.innings[0].wickets
-                  } in ${matchData.scoreCard.innings[0].overs.toFixed(
-                    1
-                  )} overs`}
-                </Typography>
-                <Typography variant="h6">
-                  Extras: {matchData.scoreCard.innings[0].extras[0].total || 0}{" "}
-                  (w:
-                  {matchData.scoreCard.innings[0].extras[0].wides || 0}, nb:
-                  {matchData.scoreCard.innings[0].extras[0].noBalls || 0}, b:
-                  {matchData.scoreCard.innings[0].extras[0].byes || 0}, lb:
-                  {matchData.scoreCard.innings[0].extras[0].legByes || 0})
-                </Typography>
+                <Stack spacing={0.5}>
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                    {`Total: ${matchData.scoreCard.innings[0].runs}/${
+                      matchData.scoreCard.innings[0].wickets
+                    } in ${matchData.scoreCard.innings[0].overs.toFixed(1)} overs`}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                    Extras: {matchData.scoreCard.innings[0].extras[0].total || 0}{" "}
+                    (w:
+                    {matchData.scoreCard.innings[0].extras[0].wides || 0}, nb:
+                    {matchData.scoreCard.innings[0].extras[0].noBalls || 0}, b:
+                    {matchData.scoreCard.innings[0].extras[0].byes || 0}, lb:
+                    {matchData.scoreCard.innings[0].extras[0].legByes || 0})
+                  </Typography>
+                </Stack>
                 <BowlingScoreCard
                   bowlingTeam={secondbattingTeam}
                   currentInning={matchData.scoreCard.innings[0]}
@@ -114,46 +132,55 @@ function MatchScoreCard({ showScoreCard, setShowScoreCard, matchData }) {
           <Accordion
             expanded={expanded === "teamB"}
             onChange={handleAccordionChange("teamB")}
+            sx={{
+              borderRadius: "8px !important",
+              boxShadow: "none",
+              border: "1px solid rgba(255, 255, 255, 0.05)",
+              bgcolor: "background.paper",
+              "&::before": { display: "none" },
+              "&.Mui-expanded": { margin: "0 0 12px 0" },
+            }}
           >
             <CustomAccordionSummary
-              expandIcon={<ExpandMoreIcon />}
+              expandIcon={<ExpandMoreIcon sx={{ fontSize: 18 }} />}
               aria-controls="panel2a-content"
               id="panel2a-header"
+              sx={{ minHeight: 40, "&.Mui-expanded": { minHeight: 40 } }}
             >
-              <Typography variant="h6">
+              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                 {matchData.teams[teamB].name} Scorecard
               </Typography>
               <Chip
-                size="medium"
+                size="small"
                 color="secondary"
                 label={`${matchData.scoreCard.innings[1].runs}/${
                   matchData.scoreCard.innings[1].wickets
-                } in ${matchData.scoreCard.innings[1].overs.toFixed(1)} overs`}
+                } in ${matchData.scoreCard.innings[1].overs.toFixed(1)} ov`}
                 variant="outlined"
+                sx={{ height: 18, fontSize: "0.675rem" }}
               ></Chip>
             </CustomAccordionSummary>
-            <AccordionDetails>
-              {" "}
-              <Stack spacing={3}>
+            <AccordionDetails sx={{ p: 1.5, pt: 0 }}>
+              <Stack spacing={1.5}>
                 <BattingScoreCard
                   battingTeam={secondbattingTeam}
                   currentInning={matchData.scoreCard.innings[1]}
                 ></BattingScoreCard>
-                <Typography variant="h6">
-                  {`Total :${matchData.scoreCard.innings[1].runs}/${
-                    matchData.scoreCard.innings[1].wickets
-                  } in ${matchData.scoreCard.innings[1].overs.toFixed(
-                    1
-                  )} overs`}
-                </Typography>
-                <Typography variant="h6">
-                  Extras: {matchData.scoreCard.innings[1].extras[0].total || 0}{" "}
-                  (w:
-                  {matchData.scoreCard.innings[1].extras[0].wides || 0}, nb:
-                  {matchData.scoreCard.innings[1].extras[0].noBalls || 0}, b:
-                  {matchData.scoreCard.innings[1].extras[0].byes || 0}, lb:
-                  {matchData.scoreCard.innings[1].extras[0].legByes || 0})
-                </Typography>
+                <Stack spacing={0.5}>
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                    {`Total: ${matchData.scoreCard.innings[1].runs}/${
+                      matchData.scoreCard.innings[1].wickets
+                    } in ${matchData.scoreCard.innings[1].overs.toFixed(1)} overs`}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                    Extras: {matchData.scoreCard.innings[1].extras[0].total || 0}{" "}
+                    (w:
+                    {matchData.scoreCard.innings[1].extras[0].wides || 0}, nb:
+                    {matchData.scoreCard.innings[1].extras[0].noBalls || 0}, b:
+                    {matchData.scoreCard.innings[1].extras[0].byes || 0}, lb:
+                    {matchData.scoreCard.innings[1].extras[0].legByes || 0})
+                  </Typography>
+                </Stack>
                 <BowlingScoreCard
                   bowlingTeam={firstbattingTeam}
                   currentInning={matchData.scoreCard.innings[1]}

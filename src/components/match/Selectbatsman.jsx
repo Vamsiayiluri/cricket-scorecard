@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+/* eslint-disable react/prop-types */
+import { useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -14,6 +15,8 @@ import {
   TextField,
 } from "@mui/material";
 import { updateScoreCard } from "../../helpers/updateScorecard";
+import { useToast } from "../../context/ToastContext";
+import { scoringLog } from "../../utils/scoringDiagnostics";
 
 function SelectBatsman({
   battingTeam,
@@ -21,22 +24,20 @@ function SelectBatsman({
   scoreCard,
   runs,
   extras,
+  rules,
   isWicketDialogOpen,
   setIsWicketDialogOpen,
   updateWicketAndNewBatsman,
 }) {
+  const { showToast } = useToast();
   const [wicketType, setWicketType] = useState("");
   const [nextBatsman, setNextBatsman] = useState("");
   const [fielder, setFielder] = useState("");
   const [outBatsman, setOutBatsman] = useState("");
   const [notOutbatsman, setNotOutBatsman] = useState("");
   const [strikeBatsman, setStrikeBatsman] = useState("");
-  const batsmen = scoreCard?.innings[scoreCard.currentInning - 1].batsmen;
+  const batsmen = scoreCard?.innings?.[scoreCard.currentInning - 1]?.batsmen || [];
 
-  const getBowler = () => {
-    let inning = scoreCard?.innings[scoreCard.currentInning - 1];
-    return inning.bowlers.find((bowler) => bowler.currentBowler);
-  };
   const inning = scoreCard.innings[scoreCard.currentInning - 1];
   const striker = inning.batsmen.find(
     (player) => !player.isOut && !player.isNonStriker
@@ -44,7 +45,38 @@ function SelectBatsman({
   const nonStriker = inning.batsmen.find(
     (player) => !player.isOut && player.isNonStriker
   );
-  const [bowler, setBowler] = useState(getBowler || "abdg");
+  const availableNextBatsmen = (battingTeam?.players || []).filter((batsman) => {
+    const batsmanData = batsmen?.find((b) => b.name === batsman);
+    return !(
+      batsmanData &&
+      (batsmanData.isOut ||
+        (!batsmanData.isOut && !batsmanData.isNonStriker) ||
+        (!batsmanData.isOut && batsmanData.isNonStriker))
+    );
+  });
+
+  const getInvalidWicketMessage = () => {
+    if (!wicketType) return "Please select the wicket type.";
+    if (extras.noBall && wicketType !== "Run Out") {
+      return "Only run out is allowed as a wicket on a no-ball in this scoring flow.";
+    }
+    if (extras.wide && !["Run Out", "Stumped"].includes(wicketType)) {
+      return "Only run out or stumped is allowed as a wicket on a wide.";
+    }
+    if (["Caught", "Run Out", "Stumped"].includes(wicketType) && !fielder) {
+      return "Please select the player involved.";
+    }
+    if (wicketType === "Run Out" && !outBatsman) {
+      return "Please select the batter who is run out.";
+    }
+    if (availableNextBatsmen.length > 0 && !nextBatsman) {
+      return "Please select the next batsman.";
+    }
+    if (wicketType === "Run Out" && availableNextBatsmen.length > 0 && !strikeBatsman) {
+      return "Please select who will be on strike after the run out.";
+    }
+    return "";
+  };
 
   const handleWicketTypeChange = (event) => {
     setWicketType(event.target.value);
@@ -69,11 +101,19 @@ function SelectBatsman({
   };
 
   const handleConfirmWicket = async () => {
-    if (!wicketType || !nextBatsman || (wicketType === "Caught" && !fielder)) {
-      alert("Please select all required fields.");
+    scoringLog("wicket.dialog.confirm", {
+      wicketType,
+      nextBatsman,
+      runs,
+      extras,
+      outBatsman,
+    });
+    const invalidMessage = getInvalidWicketMessage();
+    if (invalidMessage) {
+      showToast(invalidMessage, "warning");
       return;
     }
-    scoreCard = await updateScoreCard(scoreCard, "ADD_RUNS", { runs, extras });
+    scoreCard = await updateScoreCard(scoreCard, "ADD_RUNS", { runs, extras, rules });
     const inning = scoreCard.innings[scoreCard.currentInning - 1];
     const striker = inning.batsmen.find(
       (player) => !player.isOut && !player.isNonStriker
@@ -117,29 +157,31 @@ function SelectBatsman({
     inning.wickets += 1;
 
     if (wicketType === "Caught") {
-      striker.dismissal = `c.${fielder} b.${bowler.name}`;
+      striker.dismissal = `c.${fielder} b.${bowler?.name || "Unknown"}`;
     } else if (wicketType === "Bowled") {
-      striker.dismissal = `b.${bowler.name}`;
+      striker.dismissal = `b.${bowler?.name || "Unknown"}`;
     } else if (wicketType === "LBW") {
-      striker.dismissal = `lbw b.${bowler.name}`;
+      striker.dismissal = `lbw b.${bowler?.name || "Unknown"}`;
     } else {
       if (wicketType !== "Run Out") striker.dismissal = wicketType;
     }
 
-    const newBatsman = {
-      name: nextBatsman,
-      runs: 0,
-      balls: 0,
-      isOut: false,
-      isNonStriker: strikeBatsman?.length
-        ? strikeBatsman === nextBatsman
-          ? false
-          : true
-        : false,
-      fours: 0,
-      sixes: 0,
-    };
-    inning.batsmen.push(newBatsman);
+    if (nextBatsman) {
+      const newBatsman = {
+        name: nextBatsman,
+        runs: 0,
+        balls: 0,
+        isOut: false,
+        isNonStriker: strikeBatsman?.length
+          ? strikeBatsman === nextBatsman
+            ? false
+            : true
+          : false,
+        fours: 0,
+        sixes: 0,
+      };
+      inning.batsmen.push(newBatsman);
+    }
 
     updateWicketAndNewBatsman({ ...scoreCard });
     setIsWicketDialogOpen(false);
@@ -228,7 +270,7 @@ function SelectBatsman({
                   value={fielder}
                   onChange={handleFielderChange}
                 >
-                  {bowlingTeam?.players.map((player, index) => (
+                  {(bowlingTeam?.players || []).map((player, index) => (
                     <MenuItem key={index} value={player}>
                       {player}
                     </MenuItem>
@@ -249,16 +291,7 @@ function SelectBatsman({
               value={nextBatsman}
               onChange={handleNextBatsmanChange}
             >
-              {battingTeam.players
-                .filter((batsman) => {
-                  const batsmanData = batsmen?.find((b) => b.name === batsman);
-                  return !(
-                    batsmanData &&
-                    (batsmanData.isOut ||
-                      (!batsmanData.isOut && !batsmanData.isNonStriker) ||
-                      (!batsmanData.isOut && batsmanData.isNonStriker))
-                  );
-                })
+              {availableNextBatsmen
                 .map((batsman) => (
                   <MenuItem key={batsman} value={batsman}>
                     {batsman}

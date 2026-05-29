@@ -1,30 +1,19 @@
-import React from "react";
-import { Card, CardContent, Typography, List, ListItem } from "@mui/material";
+/* eslint-disable react/prop-types */
+import { memo } from "react";
+import MatchListSection from "./MatchListSection";
+import { getMatchScoreLine, getMatchTitle } from "../../utils/matchDisplay";
 
-const OngoingMatchesCard = () => {
-  const ongoingMatches = [
-    { id: 1, title: "Team A vs Team B", score: "125/4 in 15.3 overs" },
-    { id: 2, title: "Team C vs Team D", score: "89/2 in 10 overs" },
-  ];
+const OngoingMatchesCard = memo(({ matches, loading }) => (
+  <MatchListSection
+    title="Ongoing Matches"
+    matches={matches}
+    loading={loading}
+    emptyTitle="No ongoing matches"
+    emptyDescription="Start a match from Create Match to see live games here."
+    renderLine={(match) => `${getMatchTitle(match)} — ${getMatchScoreLine(match)}`}
+  />
+));
 
-  return (
-    <Card>
-      <CardContent>
-        <Typography variant="h5" gutterBottom>
-          Ongoing Matches
-        </Typography>
-        <List>
-          {ongoingMatches.map((match) => (
-            <ListItem key={match.id}>
-              <Typography variant="body1">
-                {match.title} - {match.score}
-              </Typography>
-            </ListItem>
-          ))}
-        </List>
-      </CardContent>
-    </Card>
-  );
-};
+OngoingMatchesCard.displayName = "OngoingMatchesCard";
 
 export default OngoingMatchesCard;

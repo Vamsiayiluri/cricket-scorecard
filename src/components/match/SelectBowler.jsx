@@ -12,6 +12,7 @@ import {
   Select,
   TextField,
 } from "@mui/material";
+import { useToast } from "../../context/ToastContext";
 
 function SelectBowler({
   bowlingTeam,
@@ -20,27 +21,29 @@ function SelectBowler({
   setIsDialogOpen,
   updateNewBowler,
 }) {
+  const { showToast } = useToast();
   const [selectedBowler, setSelectedBowler] = useState("");
   const [bowlerSelected, setBowlerSelected] = useState("");
   const bowlers = scoreCard?.innings[scoreCard.currentInning - 1]?.bowlers;
 
   useEffect(() => {
-    if (bowlers.length === 1) {
+    if (bowlers?.length === 1) {
       setBowlerSelected(bowlers[0].name);
     }
-  }, []);
+  }, [bowlers]);
 
   const handleBowlerChange = (event) => {
     setSelectedBowler(event.target.value);
   };
 
   const updateBowler = () => {
+    debugger
     if (selectedBowler) {
       updateNewBowler(selectedBowler);
       setBowlerSelected(selectedBowler);
       setSelectedBowler("");
     } else {
-      alert("Please select a bowler");
+      showToast("Please select a bowler", "warning");
     }
   };
 
