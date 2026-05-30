@@ -11,14 +11,14 @@ const AppButton = ({ children, disabled, loading = false, sx, variant = "contain
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       sx={{
-        minHeight: 38,
+        minHeight: { xs: 42, sm: 40 },
         px: 2,
         borderRadius: 1, // Inherits 8px from theme
         fontWeight: 700,
         textTransform: "none",
         fontSize: "0.85rem",
         letterSpacing: "0.01em",
-        transition: "transform 150ms ease, box-shadow 150ms ease",
+        transition: "background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease",
         background: isOutlined
           ? "transparent"
           : "linear-gradient(135deg, #6C63FF 0%, #8B5CF6 100%)",
@@ -32,11 +32,7 @@ const AppButton = ({ children, disabled, loading = false, sx, variant = "contain
               : "rgba(108, 99, 255, 0.04)"
             : "linear-gradient(135deg, #5b53e6 0%, #7c3aed 100%)",
           borderColor: isOutlined && !isText ? "#6C63FF" : undefined,
-          boxShadow: isOutlined ? "none" : "0 4px 10px rgba(108, 99, 255, 0.25)",
-          transform: "translateY(-1px)",
-        },
-        "&:active": {
-          transform: "translateY(0)",
+          boxShadow: isOutlined ? "none" : "0 4px 10px rgba(108, 99, 255, 0.22)",
         },
         "&.Mui-disabled": {
           background: isOutlined ? "transparent" : "rgba(255, 255, 255, 0.08)",

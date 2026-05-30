@@ -1,6 +1,6 @@
 /* eslint-disable react/prop-types */
 import { useState } from "react";
-import { Typography, Stack } from "@mui/material";
+import { Box, Typography, Stack } from "@mui/material";
 import BattingScoreCard from "./BattingScoreCard";
 import BowlingScoreCard from "./BowlingScoreCard";
 import { useNavigate } from "react-router-dom";
@@ -46,16 +46,30 @@ function EndOfInnings({
       {/* Show different views based on the innings */}
 
       {isInningsOver && !showScoreCard && (
-        <Stack spacing={1.5} alignItems="center" sx={{ py: 2 }}>
+        <Stack
+          spacing={1.5}
+          alignItems="center"
+          sx={{
+            py: { xs: 3, md: 4 },
+            px: 2,
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: 1,
+            bgcolor: "background.paper",
+            textAlign: "center",
+          }}
+        >
           {/* End of Innings Summary */}
           <Typography variant="subtitle1" sx={{ color: "primary.main", fontWeight: 700 }}>
             {inningsNumber === 2 ? "Match Complete" : "End of 1st Innings"}
           </Typography>
           <Typography variant="h3" sx={{ fontWeight: 800 }}>{battingTeam.name}</Typography>
-          <Typography variant="body2">
-            Total: <span style={{ fontWeight: 700 }}>{currentInning.runs}/{currentInning.wickets}</span> in{" "}
-            <span style={{ fontWeight: 700 }}>{currentInning.overs}</span> overs
-          </Typography>
+          <Box sx={{ px: 1.5, py: 0.75, borderRadius: 1, bgcolor: "rgba(108, 99, 255, 0.08)", border: "1px solid rgba(108, 99, 255, 0.18)" }}>
+            <Typography variant="body2">
+              Total: <Box component="span" sx={{ fontWeight: 800 }}>{currentInning.runs}/{currentInning.wickets}</Box> in{" "}
+              <Box component="span" sx={{ fontWeight: 800 }}>{currentInning.overs}</Box> overs
+            </Typography>
+          </Box>
           {inningsNumber === 1 ? (
             <Typography variant="body2" sx={{ color: "secondary.main", fontWeight: 700 }}>
               Target: {currentInning.runs + 1} runs

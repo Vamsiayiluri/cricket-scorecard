@@ -165,8 +165,12 @@ const StartMatch = ({ matchData, onStart, isStarting = false }) => {
         sx={{
           p: { xs: 2, md: 2.5 },
           mb: 2,
-          background:
-            "linear-gradient(120deg, rgba(108,99,255,0.24) 0%, rgba(139,92,246,0.16) 50%, rgba(34,197,94,0.1) 100%)",
+          background: (theme) =>
+            theme.palette.mode === "dark"
+              ? "linear-gradient(120deg, rgba(108,99,255,0.18) 0%, rgba(34,197,94,0.08) 100%)"
+              : "linear-gradient(120deg, rgba(108,99,255,0.08) 0%, rgba(34,197,94,0.06) 100%)",
+          border: "1px solid",
+          borderColor: "divider",
         }}
       >
         <Typography variant="h3" gutterBottom>
@@ -188,7 +192,7 @@ const StartMatch = ({ matchData, onStart, isStarting = false }) => {
       {battingTeam && (
         <Grid container spacing={2}>
           <Grid item xs={12} md={6}>
-            <Paper sx={{ p: { xs: 1.5, md: 2 }, height: "100%" }}>
+            <Paper sx={{ p: { xs: 1.5, md: 2 }, height: "100%", border: "1px solid", borderColor: "divider" }}>
               <Typography variant="h6" gutterBottom>
                 Opening players ({battingTeamData?.name || "Batting team"}):
               </Typography>
@@ -229,7 +233,7 @@ const StartMatch = ({ matchData, onStart, isStarting = false }) => {
           </Grid>
 
           <Grid item xs={12} md={6}>
-            <Paper sx={{ p: { xs: 1.5, md: 2 }, height: "100%" }}>
+            <Paper sx={{ p: { xs: 1.5, md: 2 }, height: "100%", border: "1px solid", borderColor: "divider" }}>
               <Typography variant="h6" gutterBottom>
                 Opening Bowler ({bowlingTeamData?.name || "Bowling team"}):
               </Typography>

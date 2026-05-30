@@ -209,6 +209,7 @@ const Scorecard = () => {
 
       const battingTeam =
         currentInning.team === "teamA" ? teams.teamA : teams.teamB;
+        console.log("Current inning team:", currentInning.team, "Resolved batting team:", battingTeam?.name);
       setBattingTeam(battingTeam);
 
       const bowlingTeam =
@@ -624,11 +625,14 @@ const Scorecard = () => {
                       height: "100%",
                       position: "relative",
                       overflow: "hidden",
-                      background:
-                        "linear-gradient(135deg, #0f172a 0%, #071120 100%)",
-                      border: "1px solid rgba(255, 255, 255, 0.08)",
+                      background: (theme) =>
+                        theme.palette.mode === "dark"
+                          ? "linear-gradient(135deg, #101827 0%, #0b1220 100%)"
+                          : "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)",
+                      border: "1px solid",
+                      borderColor: "divider",
                       borderRadius: 1,
-                      boxShadow: "0 20px 40px -15px rgba(0, 0, 0, 0.7)",
+                      boxShadow: "none",
                       "&::before": {
                         content: '""',
                         position: "absolute",
@@ -637,7 +641,7 @@ const Scorecard = () => {
                         width: 4,
                         height: "100%",
                         bgcolor: "primary.main",
-                        boxShadow: "0 0 15px #6C63FF",
+                        boxShadow: "none",
                       },
                     }}
                   >
@@ -696,7 +700,7 @@ const Scorecard = () => {
                         sx={{
                           fontSize: { xs: "2.5rem", md: "3.2rem" },
                           fontWeight: 900,
-                          color: "#F8FAFC",
+                          color: "text.primary",
                           letterSpacing: "-0.02em",
                         }}
                       >
@@ -718,8 +722,12 @@ const Scorecard = () => {
                       sx={{
                         p: 2,
                         borderRadius: 1,
-                        bgcolor: "rgba(255,255,255,0.02)",
-                        border: "1px solid rgba(255,255,255,0.04)",
+                        bgcolor: (theme) =>
+                          theme.palette.mode === "dark"
+                            ? "rgba(255,255,255,0.025)"
+                            : "rgba(15,23,42,0.025)",
+                        border: "1px solid",
+                        borderColor: "divider",
                         mb: 3,
                       }}
                     >
@@ -742,7 +750,7 @@ const Scorecard = () => {
                           </Typography>
                           <Typography
                             variant="h4"
-                            sx={{ fontWeight: 800, color: "#F8FAFC", mt: 0.5 }}
+                            sx={{ fontWeight: 800, color: "text.primary", mt: 0.5 }}
                           >
                             {calculateRunRate(
                               currentInning.runs,
@@ -782,7 +790,7 @@ const Scorecard = () => {
                       </Stack>
 
                       <Divider
-                        sx={{ my: 1.5, borderColor: "rgba(255,255,255,0.06)" }}
+                        sx={{ my: 1.5, borderColor: "divider" }}
                       />
 
                       <Typography
@@ -867,9 +875,10 @@ const Scorecard = () => {
                   <Paper
                     sx={{
                       p: 3,
-                      border: "1px solid rgba(255, 255, 255, 0.08)",
+                      border: "1px solid",
+                      borderColor: "divider",
                       borderRadius: 1,
-                      boxShadow: "0 20px 40px -15px rgba(0, 0, 0, 0.7)",
+                      boxShadow: "none",
                     }}
                   >
                     <Stack
@@ -881,7 +890,7 @@ const Scorecard = () => {
                       <Stack spacing={1.25} sx={{ minWidth: 0, flexGrow: 1 }}>
                         <Typography
                           variant="h3"
-                          sx={{ fontWeight: 800, color: "#F8FAFC" }}
+                          sx={{ fontWeight: 800, color: "text.primary" }}
                         >
                           Match Operations Console
                         </Typography>
@@ -950,7 +959,7 @@ const Scorecard = () => {
                     </Stack>
 
                     <Divider
-                      sx={{ mb: 2, borderColor: "rgba(255,255,255,0.06)" }}
+                      sx={{ mb: 2, borderColor: "divider" }}
                     />
 
                     {/* Operational Toolbar */}
@@ -1031,14 +1040,14 @@ const Scorecard = () => {
             <Grid container spacing={3} sx={{ mt: 1 }}>
               <Grid item xs={12} md={6}>
                 <BattingScoreCard
-                  battingTeam={battingTeam}
+                  battingTeam={battingTeam.name}
                   currentInning={currentInning}
                 ></BattingScoreCard>
               </Grid>
 
               <Grid item xs={12} md={6}>
                 <BowlingScoreCard
-                  bowlingTeam={bowlingTeam}
+                  bowlingTeam={bowlingTeam.name}
                   currentInning={currentInning}
                 ></BowlingScoreCard>
               </Grid>

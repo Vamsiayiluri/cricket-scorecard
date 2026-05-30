@@ -48,7 +48,8 @@ export const MatchRowSkeleton = () => (
     sx={{
       p: 2.5,
       borderRadius: 1,
-      border: "1px solid rgba(255,255,255,0.05)",
+      border: "1px solid",
+      borderColor: "divider",
       mb: 1.5,
       background: "rgba(15, 23, 42, 0.5)",
     }}
@@ -90,7 +91,8 @@ export const StatsSkeleton = () => (
         sx={{
           p: 2.5,
           borderRadius: 1,
-          border: "1px solid rgba(255,255,255,0.05)",
+          border: "1px solid",
+          borderColor: "divider",
           background: "rgba(15, 23, 42, 0.5)",
         }}
       >
@@ -112,7 +114,8 @@ export const ScoreboardSkeleton = () => (
       sx={{
         p: 4,
         borderRadius: "12px",
-        border: "1px solid rgba(255,255,255,0.06)",
+        border: "1px solid",
+        borderColor: "divider",
         background: "rgba(15, 23, 42, 0.6)",
       }}
     >

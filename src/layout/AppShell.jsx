@@ -238,7 +238,7 @@ const AppShell = ({ children }) => {
           zIndex: (theme) => theme.zIndex.drawer + 1,
         }}
       >
-        <Toolbar sx={{ justifyContent: "space-between", px: { xs: 2, md: 3 }, minHeight: 68 }}>
+        <Toolbar sx={{ justifyContent: "space-between", px: { xs: 1.5, md: 3 }, minHeight: 68 }}>
           <Stack direction="row" spacing={1} alignItems="center">
             {showSidebar && (
               <IconButton
@@ -253,40 +253,6 @@ const AppShell = ({ children }) => {
               <CricVeloLogo />
             </Box>
           </Stack>
-
-          {/* Search bar inside navigation top bar */}
-          {!isPublicPage && isAuthenticated && (
-            <Box
-              sx={{
-                position: "relative",
-                borderRadius: 1,
-                backgroundColor: (theme) =>
-                  theme.palette.mode === "dark" ? "rgba(15, 23, 42, 0.55)" : "rgba(240, 242, 245, 0.9)",
-                mr: 2,
-                ml: 3,
-                width: "100%",
-                maxWidth: 400,
-                display: { xs: "none", sm: "flex" },
-                alignItems: "center",
-                border: "1px solid",
-                borderColor: "divider",
-                px: 1.5,
-                py: 0.5,
-                height: 38,
-                transition: "all 0.3s ease",
-                "&:focus-within": {
-                  borderColor: "primary.main",
-                  boxShadow: "0 0 10px rgba(108, 99, 255, 0.15)",
-                },
-              }}
-            >
-              <SearchIcon sx={{ color: "text.secondary", fontSize: 18, mr: 1 }} />
-              <InputBase
-                placeholder="Search matches, scores, scorers..."
-                sx={{ color: "inherit", width: "100%", fontSize: "0.875rem" }}
-              />
-            </Box>
-          )}
 
           <Stack direction="row" spacing={1.5} alignItems="center">
             {/* Live Indicator inside top nav */}
@@ -349,6 +315,7 @@ const AppShell = ({ children }) => {
                           ? "rgba(255,255,255,0.03)"
                           : "rgba(15, 23, 42, 0.04)",
                     },
+                    display: { xs: "none", sm: "flex" },
                   }}
                 >
                   <Avatar
@@ -442,6 +409,8 @@ const AppShell = ({ children }) => {
                 boxSizing: "border-box",
                 bgcolor: "background.paper",
                 backgroundImage: "none",
+                borderRight: "1px solid",
+                borderColor: "divider",
               },
             }}
           >
@@ -483,7 +452,7 @@ const AppShell = ({ children }) => {
           flexGrow: 1,
           pt: "92px",
           pb: 8,
-          px: { xs: 2, md: 3 },
+          px: { xs: 1.5, sm: 2, md: 3 },
           width: "100%",
           maxWidth: isPublicPage ? 1040 : "100%",
           mx: isPublicPage ? "auto" : 0,
@@ -491,6 +460,54 @@ const AppShell = ({ children }) => {
       >
         {children}
       </Box>
+
+      {showSidebar && (
+        <Box
+          component="nav"
+          sx={{
+            position: "fixed",
+            left: 12,
+            right: 12,
+            bottom: 12,
+            zIndex: (theme) => theme.zIndex.appBar,
+            display: { xs: "block", md: "none" },
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: 2,
+            bgcolor: "background.paper",
+            boxShadow: (theme) =>
+              theme.palette.mode === "dark"
+                ? "0 14px 30px -20px rgba(0, 0, 0, 0.8)"
+                : "0 14px 30px -22px rgba(15, 23, 42, 0.28)",
+            overflow: "hidden",
+          }}
+        >
+          <Stack direction="row" sx={{ p: 0.5 }}>
+            {navItems.map((item) => {
+              const isSelected = location.pathname === item.path;
+              return (
+                <Button
+                  key={item.path}
+                  onClick={() => navigate(item.path)}
+                  startIcon={item.icon}
+                  sx={{
+                    flex: 1,
+                    minHeight: 46,
+                    borderRadius: 1,
+                    color: isSelected ? "primary.main" : "text.secondary",
+                    bgcolor: isSelected ? "rgba(108, 99, 255, 0.1)" : "transparent",
+                    fontWeight: 800,
+                    fontSize: "0.78rem",
+                    "& .MuiButton-startIcon": { mr: 0.5 },
+                  }}
+                >
+                  {item.label}
+                </Button>
+              );
+            })}
+          </Stack>
+        </Box>
+      )}
     </Box>
   );
 };

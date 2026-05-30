@@ -10,7 +10,7 @@ const renderBallChip = (ball, isLatest, key) => (
     label={ball}
     color={isLatest ? "primary" : "default"}
     variant={ball?.includes("W") ? "filled" : "outlined"}
-    sx={{ fontWeight: 700, height: 20, fontSize: "0.7rem", borderRadius: 1 }}
+    sx={{ fontWeight: 700, height: 24, fontSize: "0.72rem", borderRadius: 1 }}
   />
 );
 

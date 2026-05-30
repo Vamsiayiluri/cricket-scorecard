@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+/* eslint-disable react/prop-types */
+import { useEffect, useState } from "react";
 import {
   Accordion,
   AccordionSummary,
@@ -7,9 +8,7 @@ import {
   Typography,
   Stack,
   styled,
-  Fab,
   Chip,
-  Paper,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import BattingScoreCard from "./BattingScoreCard";
@@ -32,15 +31,17 @@ function MatchScoreCard({ showScoreCard, setShowScoreCard, matchData }) {
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      margin: "10px",
+      gap: "8px",
+      margin: "10px 0",
     },
   });
   useEffect(() => {
     if (matchData) {
+      console.log("Match data in ScoreCard:", matchData.teams[teamA].name, matchData.teams[teamB].name);
       setFirstBattingTeam(matchData.teams[teamA].name);
       setSecondBattingTeam(matchData.teams[teamB].name);
     }
-  }, []);
+  }, [matchData, teamA, teamB]);
   const handleBack = () => {
     setShowScoreCard(false);
   };
@@ -59,7 +60,15 @@ function MatchScoreCard({ showScoreCard, setShowScoreCard, matchData }) {
 
       {showScoreCard && (
         <Stack spacing={1.5}>
-          <Box sx={{ p: 1.5, border: "1px solid rgba(255, 255, 255, 0.05)", borderRadius: 1, bgcolor: "background.paper" }}>
+          <Box
+            sx={{
+              p: { xs: 1.5, md: 2 },
+              border: "1px solid",
+              borderColor: "divider",
+              borderRadius: 1,
+              bgcolor: "background.paper",
+            }}
+          >
             <Typography variant="h3" sx={{ fontWeight: 800 }}>
               {outcome?.isTie
                 ? "Match Tied"
@@ -73,9 +82,10 @@ function MatchScoreCard({ showScoreCard, setShowScoreCard, matchData }) {
             expanded={expanded === "teamA"}
             onChange={handleAccordionChange("teamA")}
             sx={{
-              borderRadius: "8px !important",
+              borderRadius: "12px !important",
               boxShadow: "none",
-              border: "1px solid rgba(255, 255, 255, 0.05)",
+              border: "1px solid",
+              borderColor: "divider",
               bgcolor: "background.paper",
               "&::before": { display: "none" },
               "&.Mui-expanded": { margin: "0 0 12px 0" },
@@ -85,7 +95,7 @@ function MatchScoreCard({ showScoreCard, setShowScoreCard, matchData }) {
               expandIcon={<ExpandMoreIcon sx={{ fontSize: 18 }} />}
               aria-controls="panel1a-content"
               id="panel1a-header"
-              sx={{ minHeight: 40, "&.Mui-expanded": { minHeight: 40 } }}
+              sx={{ minHeight: 48, "&.Mui-expanded": { minHeight: 48 } }}
             >
               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                 {matchData.teams[teamA].name} Scorecard
@@ -97,7 +107,7 @@ function MatchScoreCard({ showScoreCard, setShowScoreCard, matchData }) {
                   matchData.scoreCard.innings[0].wickets
                 } in ${matchData.scoreCard.innings[0].overs.toFixed(1)} ov`}
                 variant="outlined"
-                sx={{ height: 18, fontSize: "0.675rem" }}
+                sx={{ height: 22, fontSize: "0.72rem" }}
               ></Chip>
             </CustomAccordionSummary>
             <AccordionDetails sx={{ p: 1.5, pt: 0 }}>
@@ -133,9 +143,10 @@ function MatchScoreCard({ showScoreCard, setShowScoreCard, matchData }) {
             expanded={expanded === "teamB"}
             onChange={handleAccordionChange("teamB")}
             sx={{
-              borderRadius: "8px !important",
+              borderRadius: "12px !important",
               boxShadow: "none",
-              border: "1px solid rgba(255, 255, 255, 0.05)",
+              border: "1px solid",
+              borderColor: "divider",
               bgcolor: "background.paper",
               "&::before": { display: "none" },
               "&.Mui-expanded": { margin: "0 0 12px 0" },
@@ -145,7 +156,7 @@ function MatchScoreCard({ showScoreCard, setShowScoreCard, matchData }) {
               expandIcon={<ExpandMoreIcon sx={{ fontSize: 18 }} />}
               aria-controls="panel2a-content"
               id="panel2a-header"
-              sx={{ minHeight: 40, "&.Mui-expanded": { minHeight: 40 } }}
+              sx={{ minHeight: 48, "&.Mui-expanded": { minHeight: 48 } }}
             >
               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                 {matchData.teams[teamB].name} Scorecard
@@ -157,7 +168,7 @@ function MatchScoreCard({ showScoreCard, setShowScoreCard, matchData }) {
                   matchData.scoreCard.innings[1].wickets
                 } in ${matchData.scoreCard.innings[1].overs.toFixed(1)} ov`}
                 variant="outlined"
-                sx={{ height: 18, fontSize: "0.675rem" }}
+                sx={{ height: 22, fontSize: "0.72rem" }}
               ></Chip>
             </CustomAccordionSummary>
             <AccordionDetails sx={{ p: 1.5, pt: 0 }}>

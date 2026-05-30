@@ -220,11 +220,14 @@ const ScorecardActions = ({
       color: "#F8FAFC",
     };
     return {
-      background: "rgba(255, 255, 255, 0.03)",
+      background: (theme) =>
+        theme.palette.mode === "dark"
+          ? "rgba(255, 255, 255, 0.035)"
+          : "rgba(15, 23, 42, 0.035)",
       boxShadow: "none",
       color: undefined,
       border: "1px solid",
-      borderColor: "rgba(255, 255, 255, 0.08)",
+      borderColor: "divider",
     };
   };
 
@@ -272,21 +275,30 @@ const ScorecardActions = ({
                   sx={{
                     borderRadius: 1, // inherits 8px
                     px: 1.5,
-                    py: 0.5,
-                    minHeight: 32,
+                    py: 0.65,
+                    minHeight: { xs: 38, sm: 34 },
                     fontWeight: 700,
                     fontSize: "0.75rem",
                     letterSpacing: "0.01em",
                     transition: "transform 120ms ease, background-color 120ms ease",
-                    bgcolor: isActive ? type.activeBg : "rgba(255,255,255,0.02)",
+                    bgcolor: (theme) =>
+                      isActive
+                        ? type.activeBg
+                        : theme.palette.mode === "dark"
+                        ? "rgba(255,255,255,0.025)"
+                        : "rgba(15, 23, 42, 0.035)",
                     border: "1px solid",
-                    borderColor: isActive ? type.color : "rgba(255, 255, 255, 0.05)",
+                    borderColor: isActive ? type.color : "divider",
                     color: isActive ? type.color : "text.secondary",
                     boxShadow: "none",
                     "&:hover": {
-                      bgcolor: isActive ? type.activeBg : "rgba(255,255,255,0.04)",
-                      borderColor: isActive ? type.color : "rgba(255, 255, 255, 0.1)",
-                      transform: "translateY(-1px)",
+                      bgcolor: (theme) =>
+                        isActive
+                          ? type.activeBg
+                          : theme.palette.mode === "dark"
+                          ? "rgba(255,255,255,0.045)"
+                          : "rgba(15, 23, 42, 0.06)",
+                      borderColor: isActive ? type.color : "rgba(108, 99, 255, 0.22)",
                     },
                     "&:active": { transform: "translateY(0)" },
                   }}
@@ -347,15 +359,15 @@ const ScorecardActions = ({
                     }
                     sx={{
                       cursor: isLocked ? "not-allowed" : "pointer",
-                      width: { xs: "100%", sm: 46 },
-                      maxWidth: { xs: 48, sm: 46 },
-                      height: { xs: 42, sm: 46 },
+                      width: { xs: "100%", sm: 48 },
+                      maxWidth: { xs: 56, sm: 48 },
+                      height: { xs: 48, sm: 48 },
                       mx: "auto",
                       borderRadius: "50%",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      fontSize: "0.95rem",
+                      fontSize: "1rem",
                       fontWeight: 900,
                       fontFamily: "'Plus Jakarta Sans', sans-serif",
                       letterSpacing: "-0.02em",
@@ -364,7 +376,6 @@ const ScorecardActions = ({
                       opacity: isLocked ? 0.38 : 1,
                       ...padStyle,
                       "&:hover": isLocked ? {} : {
-                        transform: "translateY(-1px)",
                         borderColor: isBoundary ? "transparent" : "rgba(108, 99, 255, 0.3)",
                       },
                       "&:active": isLocked ? {} : {

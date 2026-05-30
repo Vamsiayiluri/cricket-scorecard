@@ -273,10 +273,11 @@ const MatchCreationPage = () => {
         <Paper
           sx={{
             p: { xs: 1.5, md: 2.5 },
-            borderRadius: 1, // Inherits 8px from baseline theme
+            borderRadius: 1,
             bgcolor: "background.paper",
-            border: "1px solid rgba(255, 255, 255, 0.04)",
-            boxShadow: "0 4px 16px rgba(0, 0, 0, 0.4)",
+            border: "1px solid",
+            borderColor: "divider",
+            boxShadow: "none",
           }}
         >
           {renderStepContent()}
@@ -304,11 +305,14 @@ const PaperActions = ({ activeStep, isLastStep, isSubmitting, onBack, onNext }) 
       py: 1,
       px: 2,
       borderRadius: 1, // Inherits 8px from baseline theme
-      bgcolor: "rgba(15, 23, 42, 0.9)",
-      border: "1px solid rgba(255, 255, 255, 0.05)",
+      bgcolor: "background.paper",
+      border: "1px solid",
+      borderColor: "divider",
       zIndex: 10,
-      backdropFilter: "blur(8px)",
-      boxShadow: "0 4px 20px rgba(0, 0, 0, 0.6)",
+      boxShadow: (theme) =>
+        theme.palette.mode === "dark"
+          ? "0 12px 28px -18px rgba(0, 0, 0, 0.8)"
+          : "0 12px 28px -22px rgba(15, 23, 42, 0.3)",
       transition: "transform 150ms ease",
     }}
   >

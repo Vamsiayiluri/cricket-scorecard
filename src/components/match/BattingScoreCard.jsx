@@ -1,7 +1,6 @@
-import React from "react";
+/* eslint-disable react/prop-types */
 import {
   Typography,
-  Paper,
   Table,
   TableHead,
   TableRow,
@@ -35,7 +34,14 @@ function BattingScoreCard({ battingTeam, currentInning }) {
               currentInning.batsmen?.map((player, index) => (
                 <TableRow
                   key={index}
-                  sx={{ "&:nth-of-type(odd)": { bgcolor: "rgba(255,255,255,0.01)" } }}
+                  sx={{
+                    "&:nth-of-type(odd)": {
+                      bgcolor: (theme) =>
+                        theme.palette.mode === "dark"
+                          ? "rgba(255,255,255,0.015)"
+                          : "rgba(15,23,42,0.02)",
+                    },
+                  }}
                 >
                   <TableCell sx={{ py: 0.75, px: 1.5, fontSize: "0.8rem" }}>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>

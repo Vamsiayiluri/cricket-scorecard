@@ -112,39 +112,19 @@ const LoginPage = () => {
   };
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", overflow: "hidden", bgcolor: "#071120" }}>
+    <Box sx={{ display: "flex", minHeight: "100vh", overflow: "hidden", bgcolor: "background.default" }}>
       {/* LEFT SIDE PANEL (Visual branding mesh, 60% on desktop) */}
       <Box
         sx={{
           display: { xs: "none", md: "flex" },
           flexDirection: "column",
           justifyContent: "space-between",
-          width: "55%",
-          p: 6,
+          width: "52%",
+          p: { md: 5, lg: 6 },
           position: "relative",
           overflow: "hidden",
-          background: "linear-gradient(135deg, #071120 0%, #0d1e36 50%, #12193b 100%)",
+          background: "linear-gradient(135deg, #08111f 0%, #0d1b2e 58%, #101827 100%)",
           borderRight: "1px solid rgba(255,255,255,0.06)",
-          "&::before": {
-            content: '""',
-            position: "absolute",
-            width: "350px",
-            height: "350px",
-            borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(108, 99, 255, 0.15) 0%, transparent 70%)",
-            top: "-50px",
-            left: "-50px",
-          },
-          "&::after": {
-            content: '""',
-            position: "absolute",
-            width: "450px",
-            height: "450px",
-            borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 70%)",
-            bottom: "-100px",
-            right: "-100px",
-          },
         }}
       >
         <Box sx={{ position: "relative", zIndex: 2 }}>
@@ -169,7 +149,7 @@ const LoginPage = () => {
             sx={{
               fontWeight: 800,
               color: "#F8FAFC",
-              fontSize: { md: "2.5rem", lg: "3.2rem" },
+              fontSize: { md: "2.35rem", lg: "3rem" },
               lineHeight: 1.15,
               letterSpacing: "-0.03em",
               mb: 2.5,
@@ -214,13 +194,22 @@ const LoginPage = () => {
           alignItems: "center",
           justifyContent: "center",
           p: { xs: 3, sm: 6 },
-          background: "radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 0.3) 0%, #071120 100%)",
+          background: "background.default",
         }}
       >
         <Box
           sx={{
             width: "100%",
             maxWidth: 420,
+            p: { xs: 0, sm: 3 },
+            borderRadius: { xs: 0, sm: 2 },
+            bgcolor: { xs: "transparent", sm: "background.paper" },
+            border: { xs: "none", sm: "1px solid" },
+            borderColor: "divider",
+            boxShadow: (theme) =>
+              theme.palette.mode === "dark"
+                ? "0 18px 40px -30px rgba(0,0,0,0.8)"
+                : "0 18px 40px -32px rgba(15,23,42,0.35)",
             animation: "slide-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards",
           }}
         >
@@ -230,7 +219,7 @@ const LoginPage = () => {
           </Box>
 
           <Box sx={{ mb: 4 }}>
-            <Typography variant="h2" sx={{ fontWeight: 800, color: "#F8FAFC", mb: 1, letterSpacing: "-0.02em" }}>
+            <Typography variant="h2" sx={{ fontWeight: 800, color: "text.primary", mb: 1 }}>
               Welcome back
             </Typography>
             <Typography variant="body2" color="text.secondary">
@@ -244,7 +233,7 @@ const LoginPage = () => {
               sx={{
                 p: 1.5,
                 mb: 2.5,
-                borderRadius: 2.5,
+                borderRadius: 1,
                 bgcolor: "rgba(239, 68, 68, 0.12)",
                 border: "1px solid rgba(239, 68, 68, 0.25)",
               }}
@@ -296,7 +285,7 @@ const LoginPage = () => {
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
                   color="primary"
-                  sx={{ color: "rgba(255,255,255,0.2)" }}
+                  sx={{ color: "text.secondary" }}
                 />
               }
               label={
@@ -328,7 +317,7 @@ const LoginPage = () => {
             {isLoggingIn ? "Signing in..." : "Sign In"}
           </AppButton>
 
-          <Divider sx={{ my: 3.5, borderColor: "rgba(255,255,255,0.06)" }}>
+          <Divider sx={{ my: 3.5, borderColor: "divider" }}>
             <Typography variant="caption" color="text.secondary" sx={{ textTransform: "uppercase", letterSpacing: "0.1em" }}>
               Or continue with
             </Typography>

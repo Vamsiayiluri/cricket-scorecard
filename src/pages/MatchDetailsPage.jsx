@@ -87,9 +87,9 @@ const MatchDetailsPage = () => {
   }
 
   return (
-    <PageContainer title={title} subtitle="Match control center (pre-match + operational actions).">
+    <PageContainer title={title} subtitle="Match control center for setup, sharing, and scorecard access.">
       <Stack spacing={2} sx={{ maxWidth: 960 }}>
-        <Paper variant="outlined" sx={{ p: 2 }}>
+        <Paper variant="outlined" sx={{ p: { xs: 1.5, md: 2 }, borderColor: "divider" }}>
           <Stack direction={{ xs: "column", md: "row" }} spacing={2} justifyContent="space-between">
             <Box>
               <Typography variant="h3">{match.matchDetails?.title || title}</Typography>
@@ -138,7 +138,7 @@ const MatchDetailsPage = () => {
           </Stack>
         </Paper>
 
-        <Paper variant="outlined" sx={{ p: 2 }}>
+        <Paper variant="outlined" sx={{ p: { xs: 1.5, md: 2 }, borderColor: "divider" }}>
           <Typography variant="h4" sx={{ mb: 1 }}>
             Summary
           </Typography>

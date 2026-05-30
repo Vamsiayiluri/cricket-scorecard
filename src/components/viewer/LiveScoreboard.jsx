@@ -57,7 +57,7 @@ const LiveScoreboard = memo(({ match, loading }) => {
       </Typography>
 
       {match?.tossDetails?.winner && (
-        <Box sx={{ p: 1, bgcolor: "rgba(255,255,255,0.01)", border: "1px solid rgba(255,255,255,0.04)", borderRadius: 1 }}>
+        <Box sx={{ p: 1, bgcolor: "background.paper", border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
           <Typography variant="caption" sx={{ fontWeight: 600, color: "#38BDF8", display: "block" }}>
             Toss: {match.tossDetails.winner} won & elected to {match.tossDetails.decision?.toLowerCase()} first
           </Typography>
@@ -70,7 +70,7 @@ const LiveScoreboard = memo(({ match, loading }) => {
             p: 2,
             background: "linear-gradient(135deg, #1e1b4b 0%, #0f172a 60%, #071120 100%)",
             color: "#F8FAFC",
-            border: "1px solid rgba(255,255,255,0.05)",
+            border: "1px solid rgba(255,255,255,0.08)",
             borderRadius: 1,
             boxShadow: "0 4px 16px rgba(0, 0, 0, 0.4)",
             position: "relative",
@@ -125,7 +125,7 @@ const LiveScoreboard = memo(({ match, loading }) => {
               sx={{
                 height: 4,
                 borderRadius: 999,
-                bgcolor: "rgba(255,255,255,0.06)",
+                bgcolor: "rgba(255,255,255,0.08)",
                 "& .MuiLinearProgress-bar": {
                   borderRadius: 999,
                   background: "linear-gradient(90deg, #22C55E 0%, #4ade80 100%)",
@@ -159,7 +159,7 @@ const LiveScoreboard = memo(({ match, loading }) => {
           {resultLine !== resultHeadline && (
             <Typography variant="body2" sx={{ color: "text.secondary", fontWeight: 500 }}>{resultLine}</Typography>
           )}
-          <Divider sx={{ my: 1.5, borderColor: "rgba(255,255,255,0.04)" }} />
+          <Divider sx={{ my: 1.5, borderColor: "divider" }} />
           <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
             Player of the Match: <span style={{ color: "#38BDF8" }}>To be announced</span>
           </Typography>
@@ -167,7 +167,7 @@ const LiveScoreboard = memo(({ match, loading }) => {
       )}
 
       {match.status === MATCH_STATUS.SCHEDULED && !completed && (
-        <Box sx={{ p: 2, border: "1px solid rgba(255,255,255,0.05)", borderRadius: 1, bgcolor: "background.paper" }}>
+        <Box sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 1, bgcolor: "background.paper" }}>
           <Stack spacing={1} sx={{ textAlign: "center", py: 2 }}>
             <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, textTransform: "uppercase" }}>
               Upcoming Match
@@ -191,7 +191,7 @@ const LiveScoreboard = memo(({ match, loading }) => {
 
             return (
               <Grid item xs={12} md={6} key={`inning-${index}`}>
-                <Box sx={{ p: 2, border: "1px solid rgba(255, 255, 255, 0.05)", borderRadius: 1, bgcolor: "background.paper" }}>
+                <Box sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 1, bgcolor: "background.paper" }}>
                   <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontWeight: 800, textTransform: "uppercase", mb: 1 }}>
                     Innings {index + 1} Scorecard
                   </Typography>
@@ -212,9 +212,7 @@ const LiveScoreboard = memo(({ match, loading }) => {
           })}
         </Grid>
       )}
-      <Box sx={{ p: 2, border: "1px solid rgba(255, 255, 255, 0.05)", borderRadius: 1, bgcolor: "background.paper" }}>
-        <BallTimeline recentBalls={recentBalls} overHistory={overHistory} title="Recent Over Progression" />
-      </Box>
+      
     </Stack>
   );
 });

@@ -5,7 +5,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button,
   Typography,
   FormControl,
   MenuItem,
@@ -17,6 +16,7 @@ import {
 import { updateScoreCard } from "../../helpers/updateScorecard";
 import { useToast } from "../../context/ToastContext";
 import { scoringLog } from "../../utils/scoringDiagnostics";
+import AppButton from "../ui/AppButton";
 
 function SelectBatsman({
   battingTeam,
@@ -195,6 +195,8 @@ function SelectBatsman({
       <Dialog
         open={isWicketDialogOpen}
         onClose={() => setIsWicketDialogOpen(false)}
+        fullWidth
+        maxWidth="sm"
       >
         <DialogTitle>Wicket</DialogTitle>
         <DialogContent>
@@ -320,15 +322,15 @@ function SelectBatsman({
           )}
         </DialogContent>
         <DialogActions>
-          <Button
+          <AppButton
+            variant="outlined"
             onClick={() => setIsWicketDialogOpen(false)}
-            color="secondary"
           >
             Cancel
-          </Button>
-          <Button onClick={handleConfirmWicket} color="primary">
+          </AppButton>
+          <AppButton onClick={handleConfirmWicket}>
             Confirm
-          </Button>
+          </AppButton>
         </DialogActions>
       </Dialog>
     </div>

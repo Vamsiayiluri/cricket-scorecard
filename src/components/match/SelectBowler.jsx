@@ -1,24 +1,22 @@
-import React, { useEffect, useState } from "react";
+/* eslint-disable react/prop-types */
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button,
   Typography,
   FormControl,
-  InputLabel,
   MenuItem,
-  Select,
   TextField,
 } from "@mui/material";
 import { useToast } from "../../context/ToastContext";
+import AppButton from "../ui/AppButton";
 
 function SelectBowler({
   bowlingTeam,
   isDialogOpen,
   scoreCard,
-  setIsDialogOpen,
   updateNewBowler,
 }) {
   const { showToast } = useToast();
@@ -37,7 +35,6 @@ function SelectBowler({
   };
 
   const updateBowler = () => {
-    debugger
     if (selectedBowler) {
       updateNewBowler(selectedBowler);
       setBowlerSelected(selectedBowler);
@@ -50,7 +47,7 @@ function SelectBowler({
   return (
     <div>
       {/* Dialog for selecting the next bowler */}
-      <Dialog open={isDialogOpen}>
+      <Dialog open={isDialogOpen} fullWidth maxWidth="xs">
         <DialogTitle>Select Next Bowler</DialogTitle>
         <DialogContent>
           <Typography variant="body1" gutterBottom>
@@ -78,13 +75,12 @@ function SelectBowler({
           </FormControl>
         </DialogContent>
         <DialogActions>
-          <Button
+          <AppButton
             disabled={!selectedBowler}
             onClick={updateBowler}
-            color="primary"
           >
             Confirm
-          </Button>
+          </AppButton>
         </DialogActions>
       </Dialog>
     </div>

@@ -3,7 +3,7 @@ import { Typography, Box, Chip, Stack } from "@mui/material";
 
 function CurrentOver({ currentOver }) {
   return (
-    <Box sx={{ marginTop: 2 }}>
+    <Box sx={{ mt: 2 }}>
       <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 0.5 }}>
         This Over
       </Typography>
@@ -26,8 +26,8 @@ function CurrentOver({ currentOver }) {
               variant={ball?.includes("W") ? "filled" : "outlined"}
               sx={{
                 fontWeight: 700,
-                height: 20,
-                fontSize: "0.7rem",
+                height: 24,
+                fontSize: "0.72rem",
                 borderRadius: 1,
               }}
             />

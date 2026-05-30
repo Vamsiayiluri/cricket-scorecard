@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from "react";
+/* eslint-disable react/prop-types */
+import { useMemo, useState } from "react";
 import { Box, Stack, Typography } from "@mui/material";
 import AppDialog from "../ui/AppDialog";
 import AppButton from "../ui/AppButton";
@@ -72,7 +73,7 @@ const ShareMatchDialog = ({ open, onClose, matchId, title }) => {
         </AppButton>
       }
     >
-      <Stack spacing={2}>
+      <Stack spacing={2.25}>
         <Typography variant="body2" color="text.secondary">
           Share viewer-safe links (read-only).
         </Typography>
@@ -101,7 +102,7 @@ const ShareMatchDialog = ({ open, onClose, matchId, title }) => {
           </Stack>
         </Box>
 
-        <AppButton onClick={handleNativeShare} disabled={sharing}>
+        <AppButton onClick={handleNativeShare} disabled={sharing} fullWidth>
           {sharing ? "Sharing…" : "Share (native)"}
         </AppButton>
       </Stack>

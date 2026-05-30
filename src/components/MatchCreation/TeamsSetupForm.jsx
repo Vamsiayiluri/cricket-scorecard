@@ -74,7 +74,8 @@ const TeamColumn = ({
         p: 1.5,
         height: "100%",
         borderRadius: 1,
-        border: "1px solid rgba(255, 255, 255, 0.05)",
+        border: "1px solid",
+        borderColor: "divider",
         bgcolor: "background.paper",
       }}
     >
@@ -130,8 +131,14 @@ const TeamColumn = ({
                   py: 0.5,
                   px: 1,
                   borderRadius: 0.5,
-                  bgcolor: duplicates.includes(player) ? "error.light" : "rgba(255,255,255,0.02)",
-                  border: "1px solid rgba(255,255,255,0.03)",
+                  bgcolor: duplicates.includes(player)
+                    ? "error.light"
+                    : (theme) =>
+                        theme.palette.mode === "dark"
+                          ? "rgba(255,255,255,0.025)"
+                          : "rgba(15,23,42,0.025)",
+                  border: "1px solid",
+                  borderColor: "divider",
                 }}
               >
                 <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.86rem" }}>

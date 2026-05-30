@@ -36,12 +36,16 @@ const WizardStepper = ({ steps, activeStep, completedSteps = [] }) => {
             ? "success.main"
             : active
             ? "primary.main"
-            : "rgba(255, 255, 255, 0.05)",
+            : (theme) =>
+                theme.palette.mode === "dark"
+                  ? "rgba(255, 255, 255, 0.05)"
+                  : "rgba(15, 23, 42, 0.05)",
           border: completed
             ? "none"
             : active
             ? "1px solid #8B5CF6"
-            : "1px solid rgba(255, 255, 255, 0.08)",
+            : "1px solid",
+          borderColor: active || completed ? undefined : "divider",
           boxShadow: active
             ? "0 0 8px rgba(108, 99, 255, 0.25)"
             : "none",
@@ -64,7 +68,8 @@ const WizardStepper = ({ steps, activeStep, completedSteps = [] }) => {
         p: { xs: 1.5, md: 2 },
         borderRadius: 1, // Inherits 8px from baseline theme
         bgcolor: "background.paper",
-        border: "1px solid rgba(255, 255, 255, 0.05)",
+        border: "1px solid",
+        borderColor: "divider",
         position: "relative",
         overflow: "hidden",
       }}
@@ -84,7 +89,10 @@ const WizardStepper = ({ steps, activeStep, completedSteps = [] }) => {
           mb: 2,
           height: 3,
           borderRadius: 999,
-          bgcolor: "rgba(255,255,255,0.06)",
+          bgcolor: (theme) =>
+            theme.palette.mode === "dark"
+              ? "rgba(255,255,255,0.06)"
+              : "rgba(15,23,42,0.06)",
           "& .MuiLinearProgress-bar": {
             borderRadius: 999,
             background: "linear-gradient(90deg, #6C63FF 0%, #8B5CF6 50%, #22C55E 100%)",
@@ -98,7 +106,7 @@ const WizardStepper = ({ steps, activeStep, completedSteps = [] }) => {
         orientation={isMobile ? "vertical" : "horizontal"}
         sx={{
           "& .MuiStepConnector-line": {
-            borderColor: "rgba(255, 255, 255, 0.06)",
+            borderColor: "divider",
             borderWidth: "1.5px",
           },
           "& .MuiStepConnector-root.Mui-active .MuiStepConnector-line": {

@@ -1,4 +1,4 @@
-import React from "react";
+/* eslint-disable react/prop-types */
 import { Box, Stack, Typography } from "@mui/material";
 import SportsCricketIcon from "@mui/icons-material/SportsCricket";
 import InboxIcon from "@mui/icons-material/Inbox";
@@ -24,28 +24,28 @@ const EmptyState = ({
       alignItems="center"
       justifyContent="center"
       className="animate-fade-in"
-      sx={{ py: { xs: 5, md: 7 }, px: 3, textAlign: "center" }}
+      sx={{ py: { xs: 4, md: 5 }, px: 2.5, textAlign: "center" }}
     >
       {/* Icon bubble */}
       <Box
         sx={{
-          width: 64,
-          height: 64,
-          borderRadius: "50%",
+          width: 56,
+          height: 56,
+          borderRadius: 2,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "linear-gradient(135deg, rgba(108, 99, 255, 0.12) 0%, rgba(139, 92, 246, 0.06) 100%)",
+          background: "rgba(108, 99, 255, 0.08)",
           border: "1px solid rgba(108, 99, 255, 0.18)",
           mb: 0.5,
         }}
       >
-        <IconComponent sx={{ fontSize: 28, color: "rgba(139, 92, 246, 0.7)" }} />
+        <IconComponent sx={{ fontSize: 26, color: "primary.main" }} />
       </Box>
 
       <Typography
         variant="h4"
-        sx={{ fontWeight: 800, color: "text.primary", letterSpacing: "-0.01em" }}
+        sx={{ fontWeight: 800, color: "text.primary" }}
       >
         {title}
       </Typography>

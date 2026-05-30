@@ -54,16 +54,17 @@ const PublicMatchScorecard = memo(({ match, loading }) => {
             key={`scorecard-${index}`}
             defaultExpanded={index === innings.length - 1}
             sx={{
-              borderRadius: "8px !important",
+              borderRadius: "12px !important",
               boxShadow: "none",
-              border: "1px solid rgba(255, 255, 255, 0.05)",
+              border: "1px solid",
+              borderColor: "divider",
               bgcolor: "background.paper",
               "&::before": { display: "none" },
               "&.Mui-expanded": { margin: "0 0 12px 0" },
             }}
           >
-            <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ fontSize: 18 }} />} sx={{ minHeight: 40, "&.Mui-expanded": { minHeight: 40 } }}>
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ width: "100%", pr: 1 }}>
+            <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ fontSize: 18 }} />} sx={{ minHeight: 48, "&.Mui-expanded": { minHeight: 48 } }}>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={0.75} alignItems={{ xs: "flex-start", sm: "center" }} sx={{ width: "100%", pr: 1 }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{battingTeamName} — Innings {index + 1}</Typography>
                 <Chip
                   size="small"

@@ -19,7 +19,7 @@ import AppButton from "../ui/AppButton";
 import { validateAllSteps } from "../../utils/matchCreationValidation";
 
 const PreviewSection = ({ title, stepIndex, onEdit, children }) => (
-  <Box sx={{ p: 1.5, border: "1px solid rgba(255, 255, 255, 0.05)", borderRadius: 1, bgcolor: "background.paper" }}>
+  <Box sx={{ p: 1.75, border: "1px solid", borderColor: "divider", borderRadius: 1, bgcolor: "background.paper" }}>
     <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
       <Typography variant="h4" sx={{ fontWeight: 800 }}>{title}</Typography>
       {typeof onEdit === "function" && (
@@ -28,7 +28,7 @@ const PreviewSection = ({ title, stepIndex, onEdit, children }) => (
         </AppButton>
       )}
     </Stack>
-    <Divider sx={{ mb: 1, borderColor: "rgba(255, 255, 255, 0.04)" }} />
+    <Divider sx={{ mb: 1.25, borderColor: "divider" }} />
     {children}
   </Box>
 );

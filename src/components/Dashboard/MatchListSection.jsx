@@ -67,7 +67,7 @@ const MatchListSection = memo(
 
     return (
       <AppCard title={title}>
-        <List sx={{ p: 0, display: "flex", flexDirection: "column", gap: 0.75 }}>
+        <List sx={{ p: 0, display: "flex", flexDirection: "column", gap: 1 }}>
           {matches.map((match) => {
             const chipColors = getChipColors(match.status);
             return (
@@ -77,22 +77,21 @@ const MatchListSection = memo(
                 aria-label={`Open ${renderLine(match)}`}
                 sx={{
                   borderRadius: 1, // 8px
-                  py: 1,
-                  px: 1.5,
+                  py: { xs: 1.15, sm: 1 },
+                  px: { xs: 1.25, sm: 1.5 },
                   bgcolor: (theme) =>
                     theme.palette.mode === "dark"
                       ? "rgba(255, 255, 255, 0.01)"
                       : "rgba(15, 23, 42, 0.015)",
                   border: "1px solid",
                   borderColor: "divider",
-                  transition: "transform 120ms ease, border-color 120ms ease, background-color 120ms ease",
+                  transition: "border-color 120ms ease, background-color 120ms ease",
                   display: "block",
                   "&:hover": {
                     bgcolor: (theme) =>
                       theme.palette.mode === "dark"
                         ? "rgba(255, 255, 255, 0.025)"
                         : "rgba(15, 23, 42, 0.04)",
-                    transform: "translateX(2px)",
                     borderColor: "rgba(108, 99, 255, 0.15)",
                   },
                 }}
@@ -110,7 +109,7 @@ const MatchListSection = memo(
                       <Typography variant="body1" sx={{ fontWeight: 700, color: "text.primary" }} noWrap>
                         {renderLine(match)}
                       </Typography>
-                      <Stack direction="row" spacing={1} sx={{ mt: 0.5 }} flexWrap="wrap">
+                      <Stack direction="row" spacing={0.75} sx={{ mt: 0.65 }} flexWrap="wrap" useFlexGap>
                         {match.status && (
                           <Chip
                             size="small"
