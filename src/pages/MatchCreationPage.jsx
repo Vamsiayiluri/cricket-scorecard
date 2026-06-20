@@ -12,9 +12,12 @@ import DraftRecoveryBanner from "../components/MatchCreation/DraftRecoveryBanner
 import StepErrorAlert from "../components/MatchCreation/StepErrorAlert";
 import { saveMatch } from "../services/firebaseServices";
 import { useDispatch } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import useUserTournaments from "../hooks/firebase/useUserTournaments";
+import { linkFixtureToMatch } from "../services/firebase/fixtureService";
 import PageContainer from "../components/ui/PageContainer";
 import { useToast } from "../context/ToastContext";
+import { useAuth } from "../context/AuthContext";
 import AppButton from "../components/ui/AppButton";
 import {
   EMPTY_MATCH_FORM,
@@ -54,7 +57,11 @@ const normalizeTeamsFromDetails = (formData) => {
 const MatchCreationPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const { showToast } = useToast();
+  const { user } = useAuth();
+
+  const { tournaments } = useUserTournaments();
 
   const [activeStep, setActiveStep] = useState(0);
   const [formData, setFormData] = useState(EMPTY_MATCH_FORM);
@@ -72,6 +79,23 @@ const MatchCreationPage = () => {
     if (draft && hasMeaningfulDraft(draft.formData)) {
       setPendingDraft(draft);
     }
+  }, []);
+
+  // Pre-fill from fixture when navigating via "Create Match" on a fixture
+  useEffect(() => {
+    const prefill = location.state?.fixturePreFill;
+    if (!prefill) return;
+    setFormData((prev) => ({
+      ...prev,
+      matchDetails: {
+        ...prev.matchDetails,
+        teamA: prefill.teamAName || "",
+        teamB: prefill.teamBName || "",
+        matchTitle: prefill.title || "",
+      },
+      tournamentId: prefill.tournamentId || "",
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -142,10 +166,17 @@ const MatchCreationPage = () => {
       const payload = normalizeTeamsFromDetails({
         ...formData,
         createdAt: new Date().toISOString(),
+        createdBy: user?.uid || "",
       });
-      await saveMatch(payload, dispatch, navigate);
+      const matchData = await saveMatch(payload, dispatch, navigate);
       clearMatchCreationDraft();
       showToast("Match created successfully! Set up opening players next.", "success");
+
+      // If launched from a fixture, link the new match back to it
+      const prefill = location.state?.fixturePreFill;
+      if (prefill?.fixtureId && prefill?.tournamentId && matchData?.matchId) {
+        linkFixtureToMatch(prefill.tournamentId, prefill.fixtureId, matchData.matchId).catch(() => {});
+      }
     } catch {
       showToast("Unable to save match. Please review details and retry.", "error");
     } finally {
@@ -223,8 +254,11 @@ const MatchCreationPage = () => {
           <NotesForm
             data={formData.notes}
             isPublic={formData.isPublic}
+            tournamentId={formData.tournamentId}
+            tournaments={tournaments}
             onUpdate={(data) => handleFormUpdate({ notes: data })}
             onUpdateVisibility={(next) => handleFormUpdate({ isPublic: next })}
+            onUpdateTournament={(id) => handleFormUpdate({ tournamentId: id })}
           />
         );
       case 5:

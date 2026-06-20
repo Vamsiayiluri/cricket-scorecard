@@ -11,13 +11,10 @@ import {
 } from "./firebase/matchService";
 
 export const saveMatch = async (formData, dispatch, navigate) => {
-  try {
-    const matchData = await createMatch(formData);
-    dispatch(addMatch(matchData));
-    navigate(`/start-match?matchId=${matchData.matchId}`);
-  } catch (error) {
-    throw error;
-  }
+  const matchData = await createMatch(formData);
+  dispatch(addMatch(matchData));
+  navigate(`/start-match?matchId=${matchData.matchId}`);
+  return matchData;
 };
 
 export const updateMatch = (updatedData) => updateMatchById(updatedData);

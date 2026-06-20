@@ -24,6 +24,7 @@ import BattingScoreCard from "./BattingScoreCard";
 import BowlingScoreCard from "./BowlingScoreCard";
 import MatchScoreCard from "./MatchScoreCard";
 import AppButton from "../ui/AppButton";
+import FallOfWickets from "./FallOfWickets";
 import { useScoringPersistence } from "../../hooks/useScoringPersistence";
 import { useScoringHistory } from "../../hooks/useScoringHistory";
 import AppDialog from "../ui/AppDialog";
@@ -147,6 +148,7 @@ const Scorecard = () => {
   const [isEndingInnings, setIsEndingInnings] = useState(false);
   const [isCorrectionDialogOpen, setIsCorrectionDialogOpen] = useState(false);
   const [isEndInningsDialogOpen, setIsEndInningsDialogOpen] = useState(false);
+  const [endInningsConfirmed, setEndInningsConfirmed] = useState(false);
   const [completedMatchData, setCompletedMatchData] = useState(null);
   const matchId = searchParams.get("matchId");
   const {
@@ -209,7 +211,6 @@ const Scorecard = () => {
 
       const battingTeam =
         currentInning.team === "teamA" ? teams.teamA : teams.teamB;
-        console.log("Current inning team:", currentInning.team, "Resolved batting team:", battingTeam?.name);
       setBattingTeam(battingTeam);
 
       const bowlingTeam =
@@ -1043,6 +1044,9 @@ const Scorecard = () => {
                   battingTeam={battingTeam.name}
                   currentInning={currentInning}
                 ></BattingScoreCard>
+                <Box sx={{ mt: 1.5 }}>
+                  <FallOfWickets fallOfWickets={currentInning.fallOfWickets} />
+                </Box>
               </Grid>
 
               <Grid item xs={12} md={6}>
@@ -1080,19 +1084,21 @@ const Scorecard = () => {
       )}
       <AppDialog
         open={isEndInningsDialogOpen}
-        onClose={() => setIsEndInningsDialogOpen(false)}
-        title="Confirm Innings Completion"
+        onClose={() => { setIsEndInningsDialogOpen(false); setEndInningsConfirmed(false); }}
+        title="End Innings — Are You Sure?"
         actions={
           <>
-            <Button onClick={() => setIsEndInningsDialogOpen(false)}>
+            <Button onClick={() => { setIsEndInningsDialogOpen(false); setEndInningsConfirmed(false); }}>
               Cancel
             </Button>
             <Button
-              color="primary"
+              color="error"
               variant="contained"
+              disabled={!endInningsConfirmed}
               onClick={async () => {
                 await handleEndOfInnings();
                 setIsEndInningsDialogOpen(false);
+                setEndInningsConfirmed(false);
               }}
             >
               End Innings
@@ -1100,10 +1106,22 @@ const Scorecard = () => {
           </>
         }
       >
-        <Typography variant="body2" sx={{ mt: 1 }}>
-          Confirm only if this innings is complete. This action saves the latest
-          score and opens innings transition.
+        <Typography variant="body2" sx={{ mt: 1, mb: 1.5 }}>
+          This will close the current innings and cannot be undone. Make sure all balls in the
+          current over have been recorded correctly.
         </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, p: 1.5, border: "1px solid", borderColor: "warning.main", borderRadius: 1, bgcolor: "rgba(245,158,11,0.06)" }}>
+          <input
+            type="checkbox"
+            id="end-innings-confirm"
+            checked={endInningsConfirmed}
+            onChange={(e) => setEndInningsConfirmed(e.target.checked)}
+            style={{ width: 18, height: 18, cursor: "pointer", accentColor: "#EF4444" }}
+          />
+          <label htmlFor="end-innings-confirm" style={{ cursor: "pointer", fontSize: "0.85rem", fontWeight: 600 }}>
+            I confirm this innings is complete
+          </label>
+        </Box>
       </AppDialog>
       <AppDialog
         open={isCorrectionDialogOpen}

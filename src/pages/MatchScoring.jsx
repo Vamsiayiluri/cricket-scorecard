@@ -2,16 +2,21 @@ import { Suspense, useState } from "react";
 import StartMatch from "../components/match/StartMatch";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { updateMatchById } from "../services/firebase/matchService";
+import { trackMatchStarted } from "../services/analytics/analyticsService";
 import { Paper, Typography } from "@mui/material";
 import { PageLoading } from "../components/ui/LoadingState";
 import ErrorState from "../components/ui/ErrorState";
 import { useToast } from "../context/ToastContext";
 import PageContainer from "../components/ui/PageContainer";
 import useLiveMatch from "../hooks/firebase/useLiveMatch";
+import { useAuth } from "../context/AuthContext";
+import { createNotificationsForFollowers } from "../services/firebase/notificationService";
+import { getMatchTitle } from "../utils/matchDisplay";
 
 const MatchScoring = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const matchId = searchParams.get("matchId");
   const [isStarting, setIsStarting] = useState(false);
@@ -27,6 +32,14 @@ const MatchScoring = () => {
     setIsStarting(true);
     try {
       await updateMatchById(nextMatchData);
+      trackMatchStarted({ match_id: nextMatchData.matchId });
+      // Fire-and-forget: notify followers that the match has started
+      createNotificationsForFollowers(
+        nextMatchData.matchId,
+        getMatchTitle(nextMatchData),
+        "match_started",
+        user?.uid
+      ).catch(() => {});
       navigate(`/score-card?matchId=${nextMatchData.matchId}`);
     } catch {
       showToast("Unable to start match. Please try again.", "error");

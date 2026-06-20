@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   Box,
+  Chip,
   Grid,
   Typography,
   IconButton,
@@ -57,14 +58,16 @@ const ScorecardActions = ({
   const getActionKey = (runsValue) =>
     `${runsValue}|${extras.wide}|${extras.noBall}|${extras.byes}|${extras.legByes}|${extras.wicket}`;
 
-  const formatBallSummary = (runs, extras) => {
-    let summary = runs === 0 && extras.wicket ? "" : runs.toString() + " ";
+  const formatBallSummary = (runs, extras, isFreeHit) => {
+    let summary = runs === 0 && extras.wicket ? "" : runs.toString();
     if (extras.wide)    summary += "wd";
     if (extras.noBall)  summary += "nb";
     if (extras.byes)    summary += "b";
     if (extras.legByes) summary += "lb";
     if (extras.wicket)  summary += "W";
-    return summary;
+    // Mark free-hit deliveries (not no-balls themselves, which trigger the next fh)
+    if (isFreeHit && !extras.noBall) summary += "fh";
+    return summary.trim();
   };
 
   const isLegalBallSummary = (summary = "") =>
@@ -102,7 +105,7 @@ const ScorecardActions = ({
         currentInning: matchData?.scoreCard?.currentInning,
       });
       if (!extras.wicket) {
-        const ballSummary = formatBallSummary(score, extras);
+        const ballSummary = formatBallSummary(score, extras, isFreeHit);
         const nextOverBalls = Array.isArray(currentOver)
           ? [...currentOver, ballSummary]
           : [ballSummary];
@@ -154,7 +157,7 @@ const ScorecardActions = ({
 
   const updateWicketAndNewBatsman = async (scoreCard) => {
     scoringLog("wicket.confirmed", { runs, extras, currentInning: scoreCard?.currentInning });
-    const ballSummary = formatBallSummary(runs, extras);
+    const ballSummary = formatBallSummary(runs, extras, isFreeHit);
     const nextOverBalls = Array.isArray(currentOver)
       ? [...currentOver, ballSummary]
       : [ballSummary];
@@ -190,6 +193,8 @@ const ScorecardActions = ({
     { name: "legByes", label: "Leg Byes (Lb)",  color: "#F59E0B", activeBg: "rgba(245, 158, 11, 0.12)" },
     { name: "wicket",  label: "Wicket (W)",      color: "#EF4444", activeBg: "rgba(239, 68, 68, 0.15)" },
   ];
+
+  const isFreeHit = Boolean(matchData?.scoreCard?.isFreeHit);
 
   const isLocked = isCommittingBall || isWicketDialogOpen || scoringLocked;
 
@@ -233,6 +238,38 @@ const ScorecardActions = ({
 
   return (
     <Box sx={{ py: 2 }}>
+      {/* Free Hit banner */}
+      {isFreeHit && (
+        <Box
+          sx={{
+            mb: 2,
+            p: 1.5,
+            borderRadius: 1,
+            bgcolor: "rgba(245, 158, 11, 0.08)",
+            border: "2px solid rgba(245, 158, 11, 0.4)",
+            display: "flex",
+            alignItems: "center",
+            gap: 1.5,
+          }}
+        >
+          <Chip
+            size="small"
+            label="FREE HIT"
+            sx={{
+              bgcolor: "#F59E0B",
+              color: "#fff",
+              fontWeight: 800,
+              fontSize: "0.7rem",
+              flexShrink: 0,
+            }}
+          />
+          <Typography variant="caption" sx={{ color: "#D97706", fontWeight: 600 }}>
+            Next legal delivery is a FREE HIT — batsman cannot be dismissed off
+            the bowler&apos;s delivery (run-outs still apply)
+          </Typography>
+        </Box>
+      )}
+
       {/* Wicket banner flash overlay */}
       {flashScore === "W" && (
         <Box

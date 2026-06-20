@@ -9,6 +9,10 @@ import { ThemeProvider, CssBaseline } from "@mui/material";
 import { createAppTheme } from "./theme";
 import { ToastProvider } from "./context/ToastContext";
 import { ThemeModeProvider } from "./context/ThemeModeContext";
+import ErrorBoundary from "./components/ErrorBoundary";
+import { initSentry } from "./services/monitoring/sentryService";
+
+initSentry();
 
 const AppProviders = () => {
   const [mode, setMode] = React.useState("dark");
@@ -33,8 +37,10 @@ const AppProviders = () => {
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <Provider store={store}>
-      <AppProviders />
-    </Provider>
+    <ErrorBoundary>
+      <Provider store={store}>
+        <AppProviders />
+      </Provider>
+    </ErrorBoundary>
   </React.StrictMode>
 );

@@ -193,6 +193,7 @@ const swapStrikers = (striker, nonStriker) => {
 
 const handleRunClick = (scoreCard, { runs, extras, rules }) => {
   const normalizedExtras = sanitizeExtras(extras);
+  const isCurrentFreeHit = Boolean(scoreCard.isFreeHit);
   const inning = scoreCard.innings[scoreCard.currentInning - 1];
   const striker = inning.batsmen.find(
     (player) => !player.isOut && !player.isNonStriker
@@ -235,6 +236,16 @@ const handleRunClick = (scoreCard, { runs, extras, rules }) => {
     bowler.currentBowler = false;
     swapStrikers(striker, nonStriker);
   }
+
+  // Free hit state machine:
+  // No-ball → next delivery is a free hit.
+  // Wide during free hit → free hit survives.
+  // Legal delivery → free hit is consumed.
+  scoreCard.isFreeHit = normalizedExtras.noBall
+    ? true
+    : normalizedExtras.wide && isCurrentFreeHit
+      ? true
+      : false;
 
   return { ...scoreCard };
 };

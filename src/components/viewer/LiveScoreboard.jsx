@@ -161,7 +161,10 @@ const LiveScoreboard = memo(({ match, loading }) => {
           )}
           <Divider sx={{ my: 1.5, borderColor: "divider" }} />
           <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-            Player of the Match: <span style={{ color: "#38BDF8" }}>To be announced</span>
+            Player of the Match:{" "}
+            <span style={{ color: "#38BDF8" }}>
+              {match.playerOfTheMatch || "To be announced"}
+            </span>
           </Typography>
         </Box>
       )}
@@ -180,6 +183,10 @@ const LiveScoreboard = memo(({ match, loading }) => {
             </Typography>
           </Stack>
         </Box>
+      )}
+
+      {match.status === MATCH_STATUS.IN_PROGRESS && !completed && (recentBalls.length > 0 || overHistory.length > 0) && (
+        <BallTimeline recentBalls={recentBalls} overHistory={overHistory} title="Current Over" />
       )}
 
       {innings.length > 0 && (

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Box, Typography, Stack } from "@mui/material";
 import BattingScoreCard from "./BattingScoreCard";
 import BowlingScoreCard from "./BowlingScoreCard";
+import FallOfWickets from "./FallOfWickets";
 import { useNavigate } from "react-router-dom";
 import { persistCurrentInning } from "../../services/firebase/scoringService";
 import { scoringLog } from "../../utils/scoringDiagnostics";
@@ -103,6 +104,7 @@ function EndOfInnings({
             battingTeam={battingTeam.name}
             currentInning={currentInning}
           ></BattingScoreCard>
+          <FallOfWickets fallOfWickets={currentInning.fallOfWickets} />
           <BowlingScoreCard
             bowlingTeam={bowlingTeam}
             currentInning={currentInning}

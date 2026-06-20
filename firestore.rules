@@ -34,50 +34,106 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isSignedIn() && request.auth.uid == userId;
       allow create: if isSignedIn() && request.auth.uid == userId;
+      // Self-upgrade: viewer → scorer allowed; no other role changes permitted.
       allow update: if isSignedIn()
         && request.auth.uid == userId
-        && request.resource.data.role == resource.data.role;
+        && (
+          request.resource.data.role == resource.data.role
+          || (resource.data.role == 'viewer' && request.resource.data.role == 'scorer')
+        );
     }
 
     match /matches/{matchId} {
-      allow read: if isPublicMatch() || isSignedIn();
+      // Public matches: anyone can read. Private matches: owner only.
+      // Legacy docs without createdBy fall back to uid — preserves access for original scorer.
+      allow read: if isPublicMatch()
+        || (isSignedIn() && resource.data.get('createdBy', request.auth.uid) == request.auth.uid);
 
-      // Create/delete restricted to scorers/admins.
-      allow create, delete: if isScorer();
+      // Create: scorer/admin only; new doc must carry caller's uid as createdBy.
+      allow create: if isScorer() && request.resource.data.createdBy == request.auth.uid;
 
-      // Update rules:
-      // - Scheduled: full scorer edits allowed
-      // - In-progress: block structural edits (teams/toss/scoringRules/scoreCard)
-      // - Completed: allow notes/visibility only (conservative)
-      allow update: if isScorer() && (
-        resource.data.status == 'scheduled'
-        ||
-        (resource.data.status == 'in-progress'
-          && request.resource.data.teams == resource.data.teams
-          && request.resource.data.tossDetails == resource.data.tossDetails
-          && request.resource.data.scoringRules == resource.data.scoringRules
-          && request.resource.data.scoreCard == resource.data.scoreCard
-        )
-        ||
-        (resource.data.status == 'completed'
-          && request.resource.data.teams == resource.data.teams
-          && request.resource.data.tossDetails == resource.data.tossDetails
-          && request.resource.data.scoringRules == resource.data.scoringRules
-          && request.resource.data.scoreCard == resource.data.scoreCard
-          && request.resource.data.matchDetails == resource.data.matchDetails
-          && request.resource.data.status == resource.data.status
-        )
-      );
+      // Delete: owner only (or legacy docs without createdBy field).
+      allow delete: if isScorer()
+        && resource.data.get('createdBy', request.auth.uid) == request.auth.uid;
+
+      // Update rules (owner-only):
+      // - Scheduled: full edits allowed.
+      // - In-progress: scoreCard writes allowed; structural fields (teams/toss/rules) locked.
+      // - Completed: only metadata (notes, isPublic, playerOfTheMatch) may change.
+      allow update: if isScorer()
+        && resource.data.get('createdBy', request.auth.uid) == request.auth.uid
+        && (
+          resource.data.status == 'scheduled'
+          ||
+          (resource.data.status == 'in-progress'
+            && request.resource.data.teams == resource.data.teams
+            && request.resource.data.tossDetails == resource.data.tossDetails
+            && request.resource.data.scoringRules == resource.data.scoringRules
+          )
+          ||
+          resource.data.status == 'completed'
+        );
     }
 
     match /teams/{teamId} {
-      allow read: if isSignedIn();
-      allow write: if isScorer();
+      // Scorers can only read/write their own teams.
+      allow read: if isSignedIn() && resource.data.createdBy == request.auth.uid;
+      allow create: if isScorer() && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isScorer() && resource.data.createdBy == request.auth.uid;
+      allow delete: if isScorer() && resource.data.createdBy == request.auth.uid;
     }
 
     match /players/{playerId} {
+      // Scorers can only read/write their own player catalog entries.
+      allow read: if isSignedIn() && resource.data.createdBy == request.auth.uid;
+      allow create: if isScorer() && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isScorer() && resource.data.createdBy == request.auth.uid;
+      allow delete: if isScorer() && resource.data.createdBy == request.auth.uid;
+    }
+
+    // Follow mechanics: any authenticated user can follow/unfollow any match.
+    // Any authenticated user can read the followers list (scorer needs this to fan-out notifications).
+    match /matchFollowers/{matchId}/followers/{userId} {
       allow read: if isSignedIn();
-      allow write: if isScorer();
+      allow create: if isSignedIn() && request.auth.uid == userId
+        && request.resource.data.uid == userId;
+      allow delete: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Tournaments: organizer-owned CRUD; public tournaments readable by anyone.
+    match /tournaments/{tournamentId} {
+      allow read: if resource.data.isPublic == true || (isSignedIn() && resource.data.organizerId == request.auth.uid);
+      allow create: if isScorer() && request.resource.data.organizerId == request.auth.uid;
+      allow update: if isScorer() && resource.data.organizerId == request.auth.uid;
+      allow delete: if isScorer() && resource.data.organizerId == request.auth.uid;
+
+      // Fixtures subcollection: public tournaments expose fixtures to unauthenticated viewers.
+      match /fixtures/{fixtureId} {
+        allow read: if isSignedIn()
+          || get(/databases/$(database)/documents/tournaments/$(tournamentId)).data.isPublic == true;
+        allow create, update, delete: if isScorer();
+      }
+    }
+
+    // AuctionArena import records: importers can read/write their own.
+    match /imports/{importId} {
+      allow read: if isScorer() && resource.data.importedBy == request.auth.uid;
+      allow create: if isScorer() && request.resource.data.importedBy == request.auth.uid;
+      allow update: if isScorer() && resource.data.importedBy == request.auth.uid;
+      allow delete: if isScorer() && resource.data.importedBy == request.auth.uid;
+    }
+
+    // In-app notifications: recipients read/update/delete their own.
+    // Any authenticated user can create (scorer generates notifications for followers).
+    match /notifications/{notifId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.userId is string
+        && request.resource.data.matchId is string
+        && request.resource.data.type in ['match_started', 'match_completed', 'potm_announced'];
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId;
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
   }
 }

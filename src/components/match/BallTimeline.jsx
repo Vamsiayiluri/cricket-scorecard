@@ -2,17 +2,29 @@
 import { memo } from "react";
 import { Box, Chip, Stack, Typography } from "@mui/material";
 
-const renderBallChip = (ball, isLatest, key) => (
-  <Chip
-    key={key}
-    role="listitem"
-    size="small"
-    label={ball}
-    color={isLatest ? "primary" : "default"}
-    variant={ball?.includes("W") ? "filled" : "outlined"}
-    sx={{ fontWeight: 700, height: 24, fontSize: "0.72rem", borderRadius: 1 }}
-  />
-);
+const isFreeHitBall = (ball) => typeof ball === "string" && ball.includes("fh");
+
+const renderBallChip = (ball, isLatest, key) => {
+  const fh = isFreeHitBall(ball);
+  return (
+    <Chip
+      key={key}
+      role="listitem"
+      size="small"
+      label={ball}
+      color={isLatest ? "primary" : "default"}
+      variant={ball?.includes("W") ? "filled" : "outlined"}
+      sx={{
+        fontWeight: 700,
+        height: 24,
+        fontSize: "0.72rem",
+        borderRadius: 1,
+        ...(fh && !isLatest && { borderColor: "#F59E0B", color: "#D97706" }),
+        ...(fh && isLatest && { bgcolor: "#F59E0B", color: "#fff", borderColor: "#F59E0B" }),
+      }}
+    />
+  );
+};
 
 const BallTimeline = memo(({ recentBalls = [], overHistory = [], title = "Recent Balls" }) => {
   if (!recentBalls.length && !overHistory.length) {

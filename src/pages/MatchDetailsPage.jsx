@@ -8,7 +8,8 @@ import AppButton from "../components/ui/AppButton";
 import useLiveMatch from "../hooks/firebase/useLiveMatch";
 import { useAuth } from "../context/AuthContext";
 import ShareMatchDialog from "../components/match/ShareMatchDialog";
-import { formatMatchDate, getMatchRoute, getMatchTitle } from "../utils/matchDisplay";
+import ResultShareDialog from "../components/match/ResultShareDialog";
+import { formatMatchDate, getMatchRoute, getMatchTitle, isCompletedMatch } from "../utils/matchDisplay";
 import { archiveMatch, setMatchVisibility } from "../services/firebase/matchService";
 import { useToast } from "../context/ToastContext";
 
@@ -21,6 +22,7 @@ const MatchDetailsPage = () => {
 
   const { data: match, loading, error } = useLiveMatch(matchId, { enabled: Boolean(matchId) });
   const [shareOpen, setShareOpen] = useState(false);
+  const [shareCardOpen, setShareCardOpen] = useState(false);
   const openShareFromQuery = searchParams.get("share") === "1";
 
   useEffect(() => {
@@ -115,6 +117,11 @@ const MatchDetailsPage = () => {
               <AppButton variant="outlined" onClick={() => setShareOpen(true)}>
                 Share
               </AppButton>
+              {isCompletedMatch(match) && (
+                <AppButton variant="outlined" onClick={() => setShareCardOpen(true)}>
+                  Share Result Card
+                </AppButton>
+              )}
               {isScorer && (
                 <AppButton
                   variant="outlined"
@@ -150,6 +157,12 @@ const MatchDetailsPage = () => {
             <Typography variant="body2">
               Toss: {match.tossDetails?.winner ? `${match.tossDetails.winner} chose to ${String(match.tossDetails.decision).toLowerCase()}` : "—"}
             </Typography>
+            {match.playerOfTheMatch && (
+              <Typography variant="body2">
+                Player of the Match:{" "}
+                <strong>{match.playerOfTheMatch}</strong>
+              </Typography>
+            )}
             <Typography variant="body2" color="text.secondary">
               Notes: {match.notes?.trim() ? match.notes : "—"}
             </Typography>
@@ -158,6 +171,7 @@ const MatchDetailsPage = () => {
       </Stack>
 
       <ShareMatchDialog open={shareOpen} onClose={() => setShareOpen(false)} matchId={matchId} title={title} />
+      <ResultShareDialog open={shareCardOpen} onClose={() => setShareCardOpen(false)} match={match} />
     </PageContainer>
   );
 };

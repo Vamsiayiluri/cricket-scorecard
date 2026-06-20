@@ -16,6 +16,13 @@ import {
 import { updateScoreCard } from "../../helpers/updateScorecard";
 import { useToast } from "../../context/ToastContext";
 import { scoringLog } from "../../utils/scoringDiagnostics";
+import {
+  buildDismissalDetails,
+  DISMISSAL_TYPES,
+  DISMISSALS_REQUIRING_FIELDER,
+  formatDismissal,
+  formatOverFromBalls,
+} from "../../utils/cricketScorecard";
 import AppButton from "../ui/AppButton";
 
 function SelectBatsman({
@@ -57,22 +64,22 @@ function SelectBatsman({
 
   const getInvalidWicketMessage = () => {
     if (!wicketType) return "Please select the wicket type.";
-    if (extras.noBall && wicketType !== "Run Out") {
+    if (extras.noBall && wicketType !== DISMISSAL_TYPES.RUN_OUT) {
       return "Only run out is allowed as a wicket on a no-ball in this scoring flow.";
     }
-    if (extras.wide && !["Run Out", "Stumped"].includes(wicketType)) {
+    if (extras.wide && ![DISMISSAL_TYPES.RUN_OUT, DISMISSAL_TYPES.STUMPED].includes(wicketType)) {
       return "Only run out or stumped is allowed as a wicket on a wide.";
     }
-    if (["Caught", "Run Out", "Stumped"].includes(wicketType) && !fielder) {
+    if (DISMISSALS_REQUIRING_FIELDER.includes(wicketType) && !fielder) {
       return "Please select the player involved.";
     }
-    if (wicketType === "Run Out" && !outBatsman) {
+    if (wicketType === DISMISSAL_TYPES.RUN_OUT && !outBatsman) {
       return "Please select the batter who is run out.";
     }
     if (availableNextBatsmen.length > 0 && !nextBatsman) {
       return "Please select the next batsman.";
     }
-    if (wicketType === "Run Out" && availableNextBatsmen.length > 0 && !strikeBatsman) {
+    if (wicketType === DISMISSAL_TYPES.RUN_OUT && availableNextBatsmen.length > 0 && !strikeBatsman) {
       return "Please select who will be on strike after the run out.";
     }
     return "";
@@ -80,6 +87,9 @@ function SelectBatsman({
 
   const handleWicketTypeChange = (event) => {
     setWicketType(event.target.value);
+    setFielder("");
+    setOutBatsman("");
+    setStrikeBatsman("");
   };
 
   const handleNextBatsmanChange = (event) => {
@@ -122,14 +132,22 @@ function SelectBatsman({
       (player) => !player.isOut && player.isNonStriker
     );
     const bowler = inning.bowlers.find((bowler) => bowler.currentBowler);
+    const bowlerName = bowler?.name || "";
+    const dismissalDetails = buildDismissalDetails({
+      dismissalType: wicketType,
+      fielder,
+      bowler: bowlerName,
+    });
+    let dismissedBatsman = striker;
 
-    if (wicketType === "Run Out") {
+    if (wicketType === DISMISSAL_TYPES.RUN_OUT) {
       if (outBatsman === striker.name) {
         striker.isOut = true;
         striker.isNonStriker = true;
+        Object.assign(striker, dismissalDetails);
         striker.wicketType = wicketType;
-
-        striker.dismissal = `Run Out (${fielder})`;
+        striker.dismissal = formatDismissal(striker);
+        dismissedBatsman = striker;
         if (strikeBatsman === nextBatsman) {
           nonStriker.isNonStriker = true;
         } else {
@@ -138,8 +156,10 @@ function SelectBatsman({
       } else {
         nonStriker.isOut = true;
         nonStriker.isNonStriker = true;
+        Object.assign(nonStriker, dismissalDetails);
         nonStriker.wicketType = wicketType;
-        nonStriker.dismissal = `Run Out (${fielder})`;
+        nonStriker.dismissal = formatDismissal(nonStriker);
+        dismissedBatsman = nonStriker;
 
         if (strikeBatsman === nextBatsman) {
           striker.isNonStriker = true;
@@ -150,21 +170,25 @@ function SelectBatsman({
     } else {
       striker.isOut = true;
       striker.isNonStriker = true;
+      Object.assign(striker, dismissalDetails);
       striker.wicketType = wicketType;
-      bowler.wickets += 1;
+      striker.dismissal = formatDismissal(striker);
+      if (bowler) {
+        bowler.wickets += 1;
+      }
+      dismissedBatsman = striker;
     }
 
     inning.wickets += 1;
-
-    if (wicketType === "Caught") {
-      striker.dismissal = `c.${fielder} b.${bowler?.name || "Unknown"}`;
-    } else if (wicketType === "Bowled") {
-      striker.dismissal = `b.${bowler?.name || "Unknown"}`;
-    } else if (wicketType === "LBW") {
-      striker.dismissal = `lbw b.${bowler?.name || "Unknown"}`;
-    } else {
-      if (wicketType !== "Run Out") striker.dismissal = wicketType;
-    }
+    inning.fallOfWickets = [
+      ...(inning.fallOfWickets || []),
+      {
+        wicket: inning.wickets,
+        score: inning.runs,
+        over: formatOverFromBalls(inning.balls),
+        batter: dismissedBatsman?.name || outBatsman || striker?.name || "",
+      },
+    ];
 
     if (nextBatsman) {
       const newBatsman = {
@@ -188,6 +212,9 @@ function SelectBatsman({
     setWicketType("");
     setNextBatsman("");
     setFielder("");
+    setOutBatsman("");
+    setNotOutBatsman("");
+    setStrikeBatsman("");
   };
 
   return (
@@ -210,35 +237,35 @@ function SelectBatsman({
               row
             >
               <FormControlLabel
-                value="Bowled"
+                value={DISMISSAL_TYPES.BOWLED}
                 control={<Radio />}
                 label="Bowled"
               />
               <FormControlLabel
-                value="Caught"
+                value={DISMISSAL_TYPES.CAUGHT}
                 control={<Radio />}
                 label="Caught"
               />
               <FormControlLabel
-                value="Run Out"
+                value={DISMISSAL_TYPES.RUN_OUT}
                 control={<Radio />}
                 label="Run Out"
               />
-              <FormControlLabel value="LBW" control={<Radio />} label="LBW" />
+              <FormControlLabel value={DISMISSAL_TYPES.LBW} control={<Radio />} label="LBW" />
               <FormControlLabel
-                value="Stumped"
+                value={DISMISSAL_TYPES.STUMPED}
                 control={<Radio />}
                 label="Stumped"
               />
               <FormControlLabel
-                value="Hit Wicket"
+                value={DISMISSAL_TYPES.HIT_WICKET}
                 control={<Radio />}
                 label="Hit Wicket"
               />
             </RadioGroup>
           </FormControl>
 
-          {wicketType === "Run Out" && striker && nonStriker && (
+          {wicketType === DISMISSAL_TYPES.RUN_OUT && striker && nonStriker && (
             <>
               <Typography variant="body1" gutterBottom>
                 Select the batsman out:
@@ -257,9 +284,7 @@ function SelectBatsman({
               </FormControl>
             </>
           )}
-          {(wicketType === "Caught" ||
-            wicketType === "Run Out" ||
-            wicketType === "Stumped") && (
+          {DISMISSALS_REQUIRING_FIELDER.includes(wicketType) && (
             <>
               <Typography variant="body1" gutterBottom>
                 Select the player involved:
@@ -301,7 +326,7 @@ function SelectBatsman({
                 ))}
             </TextField>
           </FormControl>
-          {wicketType === "Run Out" && nextBatsman && notOutbatsman && (
+          {wicketType === DISMISSAL_TYPES.RUN_OUT && nextBatsman && notOutbatsman && (
             <>
               <Typography variant="body1" gutterBottom>
                 Select the Striker:

@@ -8,6 +8,7 @@ import {
 } from "../services/firebase/userService";
 import { isScorerRole } from "../utils/roles";
 import { USER_ROLES } from "../services/firebase/constants";
+import { setSentryUser } from "../services/monitoring/sentryService";
 
 const AuthContext = createContext(null);
 
@@ -27,6 +28,7 @@ export const AuthProvider = ({ children }) => {
     const unsubscribe = subscribeToAuthState(async (currentUser) => {
       setUser(currentUser);
       setAuthLoading(false);
+      setSentryUser(currentUser);
 
       if (!currentUser) {
         setProfile(null);

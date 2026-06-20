@@ -1,9 +1,27 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useState } from "react";
-import { Box, FormControlLabel, Stack, Switch, Typography } from "@mui/material";
+import {
+  Box,
+  FormControl,
+  FormControlLabel,
+  InputLabel,
+  MenuItem,
+  Select,
+  Stack,
+  Switch,
+  Typography,
+} from "@mui/material";
 import AppInput from "../ui/AppInput";
 
-const NotesForm = ({ data, isPublic = true, onUpdate, onUpdateVisibility }) => {
+const NotesForm = ({
+  data,
+  isPublic = true,
+  tournamentId = "",
+  tournaments = [],
+  onUpdate,
+  onUpdateVisibility,
+  onUpdateTournament,
+}) => {
   const [notes, setNotes] = useState(data || "");
 
   useEffect(() => {
@@ -19,6 +37,25 @@ const NotesForm = ({ data, isPublic = true, onUpdate, onUpdateVisibility }) => {
         Optional details for scorers and viewers (umpires, pitch notes, etc.).
       </Typography>
       <Stack spacing={1.5}>
+        {tournaments.length > 0 && (
+          <FormControl fullWidth size="small">
+            <InputLabel>Link to Tournament (optional)</InputLabel>
+            <Select
+              label="Link to Tournament (optional)"
+              value={tournamentId || ""}
+              onChange={(e) => onUpdateTournament?.(e.target.value)}
+            >
+              <MenuItem value="">
+                <em>No tournament</em>
+              </MenuItem>
+              {tournaments.map((t) => (
+                <MenuItem key={t.tournamentId} value={t.tournamentId}>
+                  {t.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
         <FormControlLabel
           control={
             <Switch

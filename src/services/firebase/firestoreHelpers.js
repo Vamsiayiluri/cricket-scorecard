@@ -1,4 +1,5 @@
 import { getDoc, getDocs, onSnapshot } from "firebase/firestore";
+import { captureError } from "../monitoring/sentryService";
 
 /**
  * Normalize Firestore errors for UI and logging.
@@ -49,6 +50,7 @@ export const fetchDocument = async (docRef) => {
     const snapshot = await getDoc(docRef);
     return docToData(snapshot);
   } catch (error) {
+    captureError(error, { label: "fetchDocument", path: docRef?.path });
     throw handleFirestoreError(error, "fetchDocument");
   }
 };
@@ -61,6 +63,7 @@ export const fetchQuery = async (queryRef) => {
     const snapshot = await getDocs(queryRef);
     return queryToData(snapshot);
   } catch (error) {
+    captureError(error, { label: "fetchQuery" });
     throw handleFirestoreError(error, "fetchQuery");
   }
 };

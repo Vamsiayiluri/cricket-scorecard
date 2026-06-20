@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Accordion,
   AccordionSummary,
@@ -9,13 +9,22 @@ import {
   Stack,
   styled,
   Chip,
+  Button,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import BattingScoreCard from "./BattingScoreCard";
 import BowlingScoreCard from "./BowlingScoreCard";
+import FallOfWickets from "./FallOfWickets";
 import KeyboardBackspaceIcon from "@mui/icons-material/KeyboardBackspace";
-import { getMatchOutcome } from "../../utils/matchDisplay";
+import { getMatchOutcome, getMatchTitle } from "../../utils/matchDisplay";
 import AppButton from "../ui/AppButton";
+import PlayerOfMatchSelector from "./PlayerOfMatchSelector";
+import ResultShareDialog from "./ResultShareDialog";
+import { setPlayerOfMatch } from "../../services/firebase/matchService";
+import { createNotificationsForFollowers } from "../../services/firebase/notificationService";
+import { useAuth } from "../../context/AuthContext";
+
 function MatchScoreCard({ showScoreCard, setShowScoreCard, matchData }) {
   const teamA = matchData.scoreCard.innings[0].team;
   const teamB = matchData.scoreCard.innings[1].team;
@@ -23,6 +32,48 @@ function MatchScoreCard({ showScoreCard, setShowScoreCard, matchData }) {
   const [secondbattingTeam, setSecondBattingTeam] = useState("");
 
   const [expanded, setExpanded] = useState(false);
+  const [potm, setPotm] = useState(matchData?.playerOfTheMatch || "");
+  const [potmDialogOpen, setPotmDialogOpen] = useState(false);
+  const [potmSaving, setPotmSaving] = useState(false);
+  const [shareCardOpen, setShareCardOpen] = useState(false);
+
+  const { user } = useAuth();
+  const completionNotifFired = useRef(false);
+
+  // Fire match_completed notification for followers once on mount
+  useEffect(() => {
+    if (completionNotifFired.current || !matchData?.matchId) return;
+    completionNotifFired.current = true;
+    createNotificationsForFollowers(
+      matchData.matchId,
+      getMatchTitle(matchData),
+      "match_completed",
+      user?.uid
+    ).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSavePotm = async (playerName) => {
+    if (!matchData?.matchId) return;
+    setPotmSaving(true);
+    try {
+      await setPlayerOfMatch(matchData.matchId, playerName);
+      setPotm(playerName);
+      setPotmDialogOpen(false);
+      // Notify followers that POTM has been announced
+      createNotificationsForFollowers(
+        matchData.matchId,
+        getMatchTitle(matchData),
+        "potm_announced",
+        user?.uid,
+        { playerName }
+      ).catch(() => {});
+    } catch {
+      // persist failed silently — user can retry
+    } finally {
+      setPotmSaving(false);
+    }
+  };
   const handleAccordionChange = (panel) => (event, isExpanded) => {
     setExpanded(isExpanded ? panel : false);
   };
@@ -37,7 +88,6 @@ function MatchScoreCard({ showScoreCard, setShowScoreCard, matchData }) {
   });
   useEffect(() => {
     if (matchData) {
-      console.log("Match data in ScoreCard:", matchData.teams[teamA].name, matchData.teams[teamB].name);
       setFirstBattingTeam(matchData.teams[teamA].name);
       setSecondBattingTeam(matchData.teams[teamB].name);
     }
@@ -74,10 +124,66 @@ function MatchScoreCard({ showScoreCard, setShowScoreCard, matchData }) {
                 ? "Match Tied"
                 : `${outcome?.winner || "Winner"} won ${outcome?.margin || ""}`}
             </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.25 }}>
-              Player of the Match: To be announced
-            </Typography>
+            {matchData?.notes?.trim() && (
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+                {matchData.notes}
+              </Typography>
+            )}
+            <Stack direction="row" spacing={1} sx={{ mt: 1.5, flexWrap: "wrap", gap: 1 }}>
+              <Button
+                size="small"
+                variant="outlined"
+                sx={{ fontSize: "0.72rem", py: 0.25, borderRadius: 1 }}
+                onClick={() => setShareCardOpen(true)}
+              >
+                Share Result Card
+              </Button>
+            </Stack>
+
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
+              <EmojiEventsIcon sx={{ color: "#F59E0B", fontSize: 18 }} />
+              {potm ? (
+                <>
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                    {potm}
+                  </Typography>
+                  <Chip size="small" label="Player of the Match" sx={{ fontSize: "0.65rem", height: 20 }} />
+                  <Button
+                    size="small"
+                    variant="text"
+                    sx={{ fontSize: "0.7rem", py: 0, minHeight: 0, color: "text.secondary" }}
+                    onClick={() => setPotmDialogOpen(true)}
+                  >
+                    Change
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  sx={{ fontSize: "0.72rem", py: 0.25 }}
+                  onClick={() => setPotmDialogOpen(true)}
+                >
+                  Select Player of the Match
+                </Button>
+              )}
+            </Stack>
           </Box>
+
+          <PlayerOfMatchSelector
+            open={potmDialogOpen}
+            onClose={() => setPotmDialogOpen(false)}
+            matchData={matchData}
+            currentPotm={potm}
+            onSave={handleSavePotm}
+            saving={potmSaving}
+          />
+
+          <ResultShareDialog
+            open={shareCardOpen}
+            onClose={() => setShareCardOpen(false)}
+            match={matchData}
+          />
           <Accordion
             expanded={expanded === "teamA"}
             onChange={handleAccordionChange("teamA")}
@@ -116,6 +222,7 @@ function MatchScoreCard({ showScoreCard, setShowScoreCard, matchData }) {
                   battingTeam={firstbattingTeam}
                   currentInning={matchData.scoreCard.innings[0]}
                 ></BattingScoreCard>
+                <FallOfWickets fallOfWickets={matchData.scoreCard.innings[0].fallOfWickets} />
                 <Stack spacing={0.5}>
                   <Typography variant="body2" sx={{ fontWeight: 700 }}>
                     {`Total: ${matchData.scoreCard.innings[0].runs}/${
@@ -177,6 +284,7 @@ function MatchScoreCard({ showScoreCard, setShowScoreCard, matchData }) {
                   battingTeam={secondbattingTeam}
                   currentInning={matchData.scoreCard.innings[1]}
                 ></BattingScoreCard>
+                <FallOfWickets fallOfWickets={matchData.scoreCard.innings[1].fallOfWickets} />
                 <Stack spacing={0.5}>
                   <Typography variant="body2" sx={{ fontWeight: 700 }}>
                     {`Total: ${matchData.scoreCard.innings[1].runs}/${

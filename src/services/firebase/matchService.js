@@ -5,6 +5,8 @@ import { COLLECTIONS, MATCH_STATUS } from "./constants";
 import { fetchDocument } from "./firestoreHelpers";
 import { assertFirestoreSafePayload } from "../../utils/firestoreValidation";
 import { normalizeScoreCardTimelineStorage } from "../../utils/scorecardTimeline";
+import { trackMatchCreated, trackMatchCompleted } from "../analytics/analyticsService";
+import { captureError } from "../monitoring/sentryService";
 
 const matchDoc = (matchId) => doc(db, COLLECTIONS.MATCHES, matchId);
 
@@ -32,6 +34,9 @@ export const buildMatchFromForm = (formData) => {
       teamA: {
         name: formData.teams.teamA.name,
         players: formData.teams.teamA.players,
+        // playerRefs links each player name to a catalog playerId (null for manual entries).
+        // Used as the foundation for future per-player statistics.
+        playerRefs: formData.teams.teamA.playerRefs || [],
         ...(formData.teams.teamA.captain && {
           captain: formData.teams.teamA.captain,
         }),
@@ -42,6 +47,7 @@ export const buildMatchFromForm = (formData) => {
       teamB: {
         name: formData.teams.teamB.name,
         players: formData.teams.teamB.players,
+        playerRefs: formData.teams.teamB.playerRefs || [],
         ...(formData.teams.teamB.captain && {
           captain: formData.teams.teamB.captain,
         }),
@@ -67,6 +73,8 @@ export const buildMatchFromForm = (formData) => {
     createdAt: new Date(),
     updatedAt: new Date(),
     isPublic: formData?.isPublic ?? true,
+    createdBy: formData?.createdBy || "",
+    tournamentId: formData?.tournamentId || null,
     lifecyclePhase: "scheduled",
     archivedAt: null,
     deletedAt: null,
@@ -76,6 +84,10 @@ export const buildMatchFromForm = (formData) => {
 export const createMatch = async (formData) => {
   const matchData = buildMatchFromForm(formData);
   await setDoc(matchDoc(matchData.matchId), matchData);
+  trackMatchCreated({
+    match_id: matchData.matchId,
+    format: matchData.scoringRules?.oversPerInnings ? "limited_overs" : "unlimited",
+  });
   return matchData;
 };
 
@@ -101,7 +113,7 @@ export const updateMatchById = async (updatedData) => {
   try {
     await updateDoc(matchDoc(updatedData.matchId), payload);
   } catch (err) {
-    console.error("UPDATE_DOC_ERROR", err);
+    captureError(err, { label: "updateMatchById", matchId: updatedData.matchId });
     throw err;
   }
 
@@ -142,9 +154,10 @@ export const completeMatchById = async (updatedData, completionFields) => {
   try {
     await updateDoc(matchDoc(updatedData.matchId), payload);
   } catch (err) {
-    console.error("UPDATE_DOC_ERROR", err);
+    captureError(err, { label: "completeMatchById", matchId: updatedData.matchId });
     throw err;
   }
+  trackMatchCompleted({ match_id: updatedData.matchId });
   return payload;
 };
 
@@ -171,4 +184,8 @@ export const softDeleteMatch = async (matchId) => {
 
 export const setMatchVisibility = async (matchId, isPublic) => {
   await patchMatchById(matchId, { isPublic: Boolean(isPublic) });
+};
+
+export const setPlayerOfMatch = async (matchId, playerName) => {
+  await patchMatchById(matchId, { playerOfTheMatch: playerName || null });
 };

@@ -4,6 +4,8 @@ export const COLLECTIONS = {
   TEAMS: "teams",
   PLAYERS: "players",
   USERS: "users",
+  TOURNAMENTS: "tournaments",
+  IMPORTS: "imports",
 };
 
 /** User roles — lightweight RBAC. */
@@ -41,4 +43,4 @@ export const MATCH_FIELDS = {
 };
 
 /** Public viewer route prefixes (no auth required). */
-export const PUBLIC_ROUTE_PREFIXES = ["/live/", "/scorecard/"];
+export const PUBLIC_ROUTE_PREFIXES = ["/live/", "/scorecard/", "/discover"];

@@ -15,45 +15,42 @@ import {
   FormHelperText,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
-import PersonAddIcon from "@mui/icons-material/PersonAdd";
-import AppInput from "../ui/AppInput";
-import { MIN_PLAYERS_PER_TEAM } from "../../constants/matchCreation";
+import FolderOpenIcon from "@mui/icons-material/FolderOpen";
+import PlayerSearchInput from "../players/PlayerSearchInput";
+import LoadTeamDialog from "../teams/LoadTeamDialog";
+import useUserTeams from "../../hooks/firebase/useUserTeams";
+import useUserPlayers from "../../hooks/firebase/useUserPlayers";
+import { MIN_PLAYERS_PER_TEAM, MAX_PLAYERS_PER_TEAM } from "../../constants/matchCreation";
 import { findDuplicatePlayers } from "../../utils/matchCreationValidation";
 
+/**
+ * Build initial form state from draft data or saved match form.
+ * Restores playerRefs if present; synthesises nulls for manual names otherwise.
+ */
 const buildInitialTeams = (data, teamData) => {
+  const buildTeam = (teamSlot, nameOverride) => {
+    const players = teamSlot?.players || [];
+    const playerRefs = teamSlot?.playerRefs && teamSlot.playerRefs.length === players.length
+      ? teamSlot.playerRefs
+      : players.map((name) => ({ playerId: null, name }));
+    return {
+      name: teamSlot?.name || nameOverride || "",
+      players,
+      playerRefs,
+      captain: teamSlot?.captain || "",
+      wicketkeeper: teamSlot?.wicketkeeper || "",
+    };
+  };
+
   if (data?.teamA?.players || data?.teamB?.players) {
     return {
-      teamA: {
-        name: data.teamA?.name || teamData?.teamA || "",
-        players: data.teamA?.players || [],
-        captain: data.teamA?.captain || "",
-        wicketkeeper: data.teamA?.wicketkeeper || "",
-        newPlayer: "",
-      },
-      teamB: {
-        name: data.teamB?.name || teamData?.teamB || "",
-        players: data.teamB?.players || [],
-        captain: data.teamB?.captain || "",
-        wicketkeeper: data.teamB?.wicketkeeper || "",
-        newPlayer: "",
-      },
+      teamA: buildTeam(data.teamA, teamData?.teamA),
+      teamB: buildTeam(data.teamB, teamData?.teamB),
     };
   }
   return {
-    teamA: {
-      name: teamData?.teamA || "",
-      players: [],
-      captain: "",
-      wicketkeeper: "",
-      newPlayer: "",
-    },
-    teamB: {
-      name: teamData?.teamB || "",
-      players: [],
-      captain: "",
-      wicketkeeper: "",
-      newPlayer: "",
-    },
+    teamA: buildTeam(null, teamData?.teamA),
+    teamB: buildTeam(null, teamData?.teamB),
   };
 };
 
@@ -62,9 +59,11 @@ const TeamColumn = ({
   team,
   displayName,
   errors = {},
+  catalogPlayers,
   onTeamChange,
   onAddPlayer,
   onRemovePlayer,
+  onLoadTeam,
 }) => {
   const duplicates = findDuplicatePlayers(team.players);
 
@@ -84,43 +83,36 @@ const TeamColumn = ({
           <Typography variant="h4" sx={{ fontWeight: 800 }}>
             {displayName}
           </Typography>
-          <Chip
-            size="small"
-            label={`${team.players.length} player${team.players.length === 1 ? "" : "s"}`}
-            color={team.players.length >= MIN_PLAYERS_PER_TEAM ? "success" : "default"}
-            variant="outlined"
-            sx={{ height: 20, fontSize: "0.7rem" }}
-          />
+          <Stack direction="row" spacing={0.75} alignItems="center">
+            <Chip
+              size="small"
+              label={`${team.players.length} player${team.players.length === 1 ? "" : "s"}`}
+              color={team.players.length >= MIN_PLAYERS_PER_TEAM ? "success" : "default"}
+              variant="outlined"
+              sx={{ height: 20, fontSize: "0.7rem" }}
+            />
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<FolderOpenIcon sx={{ fontSize: "0.9rem !important" }} />}
+              onClick={() => onLoadTeam(teamKey)}
+              sx={{ height: 24, fontSize: "0.68rem", px: 1, py: 0, borderRadius: 1, minWidth: 0 }}
+            >
+              Load
+            </Button>
+          </Stack>
         </Stack>
 
-        <Stack direction="row" spacing={1}>
-          <AppInput
-            label="Add player"
-            placeholder="Player name"
-            value={team.newPlayer || ""}
-            onChange={(e) => onTeamChange(teamKey, "newPlayer", e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                onAddPlayer(teamKey);
-              }
-            }}
-            error={Boolean(errors.players)}
-            sx={{ flexGrow: 1 }}
-          />
-          <Button
-            variant="contained"
-            startIcon={<PersonAddIcon />}
-            onClick={() => onAddPlayer(teamKey)}
-            sx={{ minHeight: 38, flexShrink: 0, borderRadius: 1 }}
-          >
-            Add
-          </Button>
-        </Stack>
-        {errors.players && <FormHelperText error sx={{ mt: 0.25, fontSize: "0.675rem" }}>{errors.players}</FormHelperText>}
+        <PlayerSearchInput
+          catalogPlayers={catalogPlayers}
+          currentNames={team.players}
+          onAdd={(name, playerId) => onAddPlayer(teamKey, name, playerId)}
+          error={errors.players}
+          atMax={team.players.length >= MAX_PLAYERS_PER_TEAM}
+        />
 
         {team.players.length > 0 && (
-          <Stack spacing={0.5} sx={{ maxH: 200, overflowY: "auto", pr: 0.5 }}>
+          <Stack spacing={0.5} sx={{ maxHeight: 200, overflowY: "auto", pr: 0.5 }}>
             {team.players.map((player, index) => (
               <Box
                 key={`${player}-${index}`}
@@ -143,8 +135,11 @@ const TeamColumn = ({
               >
                 <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.86rem" }}>
                   {player}
+                  {team.playerRefs?.[index]?.playerId && (
+                    <Chip size="small" label="linked" sx={{ ml: 0.5, height: 14, fontSize: "0.55rem" }} color="info" />
+                  )}
                   {team.captain === player && (
-                    <Chip size="small" label="C" sx={{ ml: 1, height: 16, fontSize: "0.6rem" }} color="primary" />
+                    <Chip size="small" label="C" sx={{ ml: 0.5, height: 16, fontSize: "0.6rem" }} color="primary" />
                   )}
                   {team.wicketkeeper === player && (
                     <Chip size="small" label="WK" sx={{ ml: 0.5, height: 16, fontSize: "0.6rem" }} color="secondary" />
@@ -208,6 +203,35 @@ const TeamColumn = ({
 
 const TeamsSetupForm = ({ data, teamData, errors = {}, onUpdate }) => {
   const [teams, setTeams] = useState(() => buildInitialTeams(data, teamData));
+  const { teams: savedTeams, loading: teamsLoading } = useUserTeams();
+  const { players: catalogPlayers } = useUserPlayers();
+  const [loadDialogOpen, setLoadDialogOpen] = useState(false);
+  const [loadTargetKey, setLoadTargetKey] = useState(null);
+
+  const openLoadDialog = (teamKey) => {
+    setLoadTargetKey(teamKey);
+    setLoadDialogOpen(true);
+  };
+
+  const handleLoadTeam = (savedTeam) => {
+    if (!loadTargetKey) return;
+    const players = savedTeam.players || [];
+    const playerRefs = savedTeam.playerRefs && savedTeam.playerRefs.length === players.length
+      ? savedTeam.playerRefs
+      : players.map((name) => ({ playerId: null, name }));
+    const next = {
+      ...teams,
+      [loadTargetKey]: {
+        ...teams[loadTargetKey],
+        name: savedTeam.name,
+        players,
+        playerRefs,
+        captain: savedTeam.captain || "",
+        wicketkeeper: savedTeam.wicketKeeper || "",
+      },
+    };
+    syncTeams(next);
+  };
 
   useEffect(() => {
     setTeams((prev) => ({
@@ -222,12 +246,14 @@ const TeamsSetupForm = ({ data, teamData, errors = {}, onUpdate }) => {
       teamA: {
         name: nextTeams.teamA.name,
         players: nextTeams.teamA.players,
+        playerRefs: nextTeams.teamA.playerRefs,
         captain: nextTeams.teamA.captain,
         wicketkeeper: nextTeams.teamA.wicketkeeper,
       },
       teamB: {
         name: nextTeams.teamB.name,
         players: nextTeams.teamB.players,
+        playerRefs: nextTeams.teamB.playerRefs,
         captain: nextTeams.teamB.captain,
         wicketkeeper: nextTeams.teamB.wicketkeeper,
       },
@@ -242,23 +268,18 @@ const TeamsSetupForm = ({ data, teamData, errors = {}, onUpdate }) => {
     syncTeams(next);
   };
 
-  const addPlayer = (teamKey) => {
-    const name = (teams[teamKey].newPlayer || "").trim();
-    if (!name) {
-      return;
-    }
+  const addPlayer = (teamKey, name, playerId = null) => {
+    if (!name) return;
     const exists = teams[teamKey].players.some(
       (p) => p.toLowerCase() === name.toLowerCase()
     );
-    if (exists) {
-      return;
-    }
+    if (exists) return;
     const next = {
       ...teams,
       [teamKey]: {
         ...teams[teamKey],
         players: [...teams[teamKey].players, name],
-        newPlayer: "",
+        playerRefs: [...(teams[teamKey].playerRefs || []), { playerId: playerId || null, name }],
       },
     };
     syncTeams(next);
@@ -266,15 +287,14 @@ const TeamsSetupForm = ({ data, teamData, errors = {}, onUpdate }) => {
 
   const removePlayer = (teamKey, index) => {
     const removed = teams[teamKey].players[index];
-    const nextPlayers = teams[teamKey].players.filter((_, i) => i !== index);
     const next = {
       ...teams,
       [teamKey]: {
         ...teams[teamKey],
-        players: nextPlayers,
+        players: teams[teamKey].players.filter((_, i) => i !== index),
+        playerRefs: (teams[teamKey].playerRefs || []).filter((_, i) => i !== index),
         captain: teams[teamKey].captain === removed ? "" : teams[teamKey].captain,
-        wicketkeeper:
-          teams[teamKey].wicketkeeper === removed ? "" : teams[teamKey].wicketkeeper,
+        wicketkeeper: teams[teamKey].wicketkeeper === removed ? "" : teams[teamKey].wicketkeeper,
       },
     };
     syncTeams(next);
@@ -297,7 +317,7 @@ const TeamsSetupForm = ({ data, teamData, errors = {}, onUpdate }) => {
         Teams & Playing XI
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontSize: "0.9rem" }}>
-        Add at least {MIN_PLAYERS_PER_TEAM} players per team. Duplicates are blocked automatically.
+        Search your player catalog or type any name. Click <strong>Load</strong> to import a saved team.
       </Typography>
       <Grid container spacing={2}>
         <Grid item xs={12} md={6}>
@@ -306,9 +326,11 @@ const TeamsSetupForm = ({ data, teamData, errors = {}, onUpdate }) => {
             team={teams.teamA}
             displayName={names.teamA || "Team A"}
             errors={teamAErrors}
+            catalogPlayers={catalogPlayers}
             onTeamChange={handleTeamChange}
             onAddPlayer={addPlayer}
             onRemovePlayer={removePlayer}
+            onLoadTeam={openLoadDialog}
           />
         </Grid>
         <Grid item xs={12} md={6}>
@@ -317,12 +339,22 @@ const TeamsSetupForm = ({ data, teamData, errors = {}, onUpdate }) => {
             team={teams.teamB}
             displayName={names.teamB || "Team B"}
             errors={teamBErrors}
+            catalogPlayers={catalogPlayers}
             onTeamChange={handleTeamChange}
             onAddPlayer={addPlayer}
             onRemovePlayer={removePlayer}
+            onLoadTeam={openLoadDialog}
           />
         </Grid>
       </Grid>
+
+      <LoadTeamDialog
+        open={loadDialogOpen}
+        onClose={() => setLoadDialogOpen(false)}
+        teams={savedTeams}
+        loading={teamsLoading}
+        onLoad={handleLoadTeam}
+      />
     </Box>
   );
 };

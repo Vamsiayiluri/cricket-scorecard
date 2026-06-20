@@ -14,8 +14,6 @@ import {
   Button,
   Chip,
   Stack,
-  InputBase,
-  Badge,
   Menu,
   MenuItem,
   Divider,
@@ -25,11 +23,17 @@ import MenuIcon from "@mui/icons-material/Menu";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import LogoutIcon from "@mui/icons-material/Logout";
-import SearchIcon from "@mui/icons-material/Search";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import AddCircleOutlineOutlinedIcon from "@mui/icons-material/AddCircleOutlineOutlined";
+import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
+import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
+import ExploreOutlinedIcon from "@mui/icons-material/ExploreOutlined";
+import EmojiEventsOutlinedIcon from "@mui/icons-material/EmojiEventsOutlined";
+import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
+import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
+import NotificationBell from "../components/ui/NotificationBell";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import { useThemeMode } from "../context/ThemeModeContext";
@@ -92,7 +96,7 @@ const AppShell = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { mode, toggleMode } = useThemeMode();
-  const { isAuthenticated, isScorer, role, logout } = useAuth();
+  const { isAuthenticated, isScorer, role, logout, user } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileAnchor, setProfileAnchor] = useState(null);
 
@@ -107,6 +111,18 @@ const AppShell = ({ children }) => {
         requiresAuth: true,
         icon: <DashboardOutlinedIcon fontSize="small" />,
       },
+      {
+        label: "Discover",
+        path: "/discover",
+        requiresAuth: true,
+        icon: <ExploreOutlinedIcon fontSize="small" />,
+      },
+      {
+        label: "Notifications",
+        path: "/notifications",
+        requiresAuth: true,
+        icon: <NotificationsNoneIcon fontSize="small" />,
+      },
     ];
     if (isScorer) {
       items.push({
@@ -114,6 +130,36 @@ const AppShell = ({ children }) => {
         path: "/create-match",
         requiresAuth: true,
         icon: <AddCircleOutlineOutlinedIcon fontSize="small" />,
+      });
+      items.push({
+        label: "Tournaments",
+        path: "/tournaments",
+        requiresAuth: true,
+        icon: <EmojiEventsOutlinedIcon fontSize="small" />,
+      });
+      items.push({
+        label: "My Teams",
+        path: "/teams",
+        requiresAuth: true,
+        icon: <GroupsOutlinedIcon fontSize="small" />,
+      });
+      items.push({
+        label: "My Players",
+        path: "/players",
+        requiresAuth: true,
+        icon: <PersonOutlinedIcon fontSize="small" />,
+      });
+      items.push({
+        label: "AA Import",
+        path: "/imports",
+        requiresAuth: true,
+        icon: <UploadFileOutlinedIcon fontSize="small" />,
+      });
+      items.push({
+        label: "Import History",
+        path: "/import-history",
+        requiresAuth: true,
+        icon: <HistoryOutlinedIcon fontSize="small" />,
       });
     }
     return items;
@@ -186,25 +232,56 @@ const AppShell = ({ children }) => {
           );
         })}
         {isPublicPage && (
-          <ListItemButton
-            component={RouterLink}
-            to="/login"
-            sx={{
-              borderRadius: 1,
-              py: 1.25,
-              px: 2,
-              color: "text.secondary",
-              "&:hover": {
-                color: "text.primary",
-                backgroundColor: (theme) =>
-                  theme.palette.mode === "dark"
-                    ? "rgba(255,255,255,0.03)"
-                    : "rgba(15, 23, 42, 0.04)",
-              },
-            }}
-          >
-            <ListItemText primary="Sign In" primaryTypographyProps={{ fontWeight: 600 }} />
-          </ListItemButton>
+          <>
+            <ListItemButton
+              component={RouterLink}
+              to="/discover"
+              selected={location.pathname === "/discover"}
+              sx={{
+                borderRadius: 1,
+                mb: 1,
+                py: 1.25,
+                px: 2,
+                color: "text.secondary",
+                "&:hover": {
+                  color: "text.primary",
+                  backgroundColor: (theme) =>
+                    theme.palette.mode === "dark"
+                      ? "rgba(255,255,255,0.03)"
+                      : "rgba(15, 23, 42, 0.04)",
+                },
+                "&.Mui-selected": {
+                  backgroundColor: "rgba(108, 99, 255, 0.12) !important",
+                  border: "1px solid rgba(108, 99, 255, 0.25)",
+                  color: "text.primary",
+                },
+              }}
+            >
+              <ListItemIcon sx={{ minWidth: 36, color: "inherit" }}>
+                <ExploreOutlinedIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText primary="Discover" primaryTypographyProps={{ fontWeight: 600 }} />
+            </ListItemButton>
+            <ListItemButton
+              component={RouterLink}
+              to="/login"
+              sx={{
+                borderRadius: 1,
+                py: 1.25,
+                px: 2,
+                color: "text.secondary",
+                "&:hover": {
+                  color: "text.primary",
+                  backgroundColor: (theme) =>
+                    theme.palette.mode === "dark"
+                      ? "rgba(255,255,255,0.03)"
+                      : "rgba(15, 23, 42, 0.04)",
+                },
+              }}
+            >
+              <ListItemText primary="Sign In" primaryTypographyProps={{ fontWeight: 600 }} />
+            </ListItemButton>
+          </>
         )}
       </List>
 
@@ -275,11 +352,7 @@ const AppShell = ({ children }) => {
             </IconButton>
 
             {isAuthenticated && (
-              <IconButton color="inherit" sx={{ border: "1px solid", borderColor: "divider", p: 1, borderRadius: 1, display: { xs: "none", sm: "flex" } }}>
-                <Badge color="error" variant="dot">
-                  <NotificationsNoneIcon sx={{ fontSize: 20 }} />
-                </Badge>
-              </IconButton>
+              <NotificationBell uid={user?.uid} />
             )}
 
             {isPublicPage && !isAuthenticated && (
@@ -375,7 +448,7 @@ const AppShell = ({ children }) => {
                     </ListItemIcon>
                     Dashboard
                   </MenuItem>
-                  <MenuItem onClick={handleProfileClose}>
+                  <MenuItem onClick={() => { handleProfileClose(); navigate("/settings"); }}>
                     <ListItemIcon>
                       <SettingsOutlinedIcon fontSize="small" />
                     </ListItemIcon>

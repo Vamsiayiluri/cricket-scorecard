@@ -36,4 +36,5 @@ export const EMPTY_MATCH_FORM = {
   tossDetails: { winner: "", decision: "" },
   scoringRules: { overs: "", wide: 1, noBall: 1 },
   notes: "",
+  tournamentId: "",
 };

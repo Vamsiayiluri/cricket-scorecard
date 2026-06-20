@@ -1,4 +1,4 @@
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import db from "../../firebase-config";
 import { COLLECTIONS, SCORER_ROLES, USER_ROLES } from "./constants";
 import { fetchDocument, subscribeToDocument } from "./firestoreHelpers";
@@ -51,6 +51,11 @@ export const ensureUserProfile = async (user, defaultRole = USER_ROLES.VIEWER) =
     return existing;
   }
   return createUserProfile(user, defaultRole);
+};
+
+export const upgradeToScorer = async (uid) => {
+  if (!uid) throw new Error("uid required");
+  await updateDoc(userDoc(uid), { role: USER_ROLES.SCORER, updatedAt: serverTimestamp() });
 };
 
 export const subscribeToUserProfile = (uid, onData, onError) => {

@@ -1,11 +1,14 @@
 import { useParams } from "react-router-dom";
-import { Box, Stack, Typography, Paper, Chip } from "@mui/material";
+import { Box, Chip, Stack, Tooltip, Typography, Paper } from "@mui/material";
+import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
+import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import PageContainer from "../components/ui/PageContainer";
 import ErrorState from "../components/ui/ErrorState";
 import { PageLoading } from "../components/ui/LoadingState";
 import LiveScoreboard from "../components/viewer/LiveScoreboard";
 import PublicMatchScorecard from "../components/viewer/PublicMatchScorecard";
 import useLiveMatch from "../hooks/firebase/useLiveMatch";
+import useFollowMatch from "../hooks/firebase/useFollowMatch";
 import { useAuth } from "../context/AuthContext";
 
 /**
@@ -14,7 +17,11 @@ import { useAuth } from "../context/AuthContext";
 const LiveMatchPage = () => {
   const { matchId } = useParams();
   const { data: match, loading, error } = useLiveMatch(matchId, { enabled: Boolean(matchId) });
-  const { authLoading, isAuthenticated } = useAuth();
+  const { authLoading, isAuthenticated, user } = useAuth();
+  const { isFollowing, toggleFollow, loading: followLoading } = useFollowMatch(
+    user?.uid,
+    matchId
+  );
 
   if (!matchId) {
     return (
@@ -62,9 +69,34 @@ const LiveMatchPage = () => {
         <Paper sx={{ p: 1.5 }}>
           <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
             <Chip size="small" color="error" label="LIVE" />
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" color="text.secondary" sx={{ flex: 1 }}>
               Auto-refreshing scoreboard for fans and officials.
             </Typography>
+            {isAuthenticated && (
+              <Tooltip title={isFollowing ? "Unfollow this match" : "Follow for notifications"}>
+                <Chip
+                  size="small"
+                  icon={isFollowing
+                    ? <NotificationsActiveIcon sx={{ fontSize: "14px !important" }} />
+                    : <NotificationsNoneIcon sx={{ fontSize: "14px !important" }} />
+                  }
+                  label={isFollowing ? "Following" : "Follow"}
+                  onClick={toggleFollow}
+                  disabled={followLoading}
+                  variant={isFollowing ? "filled" : "outlined"}
+                  sx={{
+                    height: 26,
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    bgcolor: isFollowing ? "rgba(108,99,255,0.12)" : "transparent",
+                    color: isFollowing ? "primary.main" : "text.secondary",
+                    borderColor: isFollowing ? "primary.main" : "divider",
+                    "&:hover": { borderColor: "primary.main", color: "primary.main" },
+                  }}
+                />
+              </Tooltip>
+            )}
           </Stack>
         </Paper>
         <LiveScoreboard match={match} loading={false} />

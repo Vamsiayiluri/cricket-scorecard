@@ -10,6 +10,7 @@ import {
   TableContainer,
   Chip,
 } from "@mui/material";
+import { formatDismissal } from "../../utils/cricketScorecard";
 
 function BattingScoreCard({ battingTeam, currentInning }) {
   return (
@@ -52,9 +53,9 @@ function BattingScoreCard({ battingTeam, currentInning }) {
                         <Chip size="small" label="STR" color="primary" sx={{ height: 16, fontSize: "0.6rem", px: 0.5 }} />
                       ) : null}
                     </Box>
-                    {player.isOut && player.dismissal && (
+                    {player.isOut && (player.dismissal || player.dismissalType || player.wicketType) && (
                       <Typography variant="caption" color="text.secondary" sx={{ fontStyle: "italic", fontSize: "0.675rem", display: "block", mt: 0.25 }}>
-                        {player.dismissal}
+                        {formatDismissal(player)}
                       </Typography>
                     )}
                   </TableCell>

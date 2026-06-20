@@ -10,8 +10,10 @@ import {
   Typography,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import BattingScoreCard from "../match/BattingScoreCard";
 import BowlingScoreCard from "../match/BowlingScoreCard";
+import FallOfWickets from "../match/FallOfWickets";
 import { CardSkeleton } from "../ui/LoadingState";
 import BallTimeline from "../match/BallTimeline";
 import {
@@ -36,8 +38,33 @@ const PublicMatchScorecard = memo(({ match, loading }) => {
     );
   }
 
+  const potm = match?.playerOfTheMatch;
+
   return (
     <Stack spacing={1.5}>
+      {potm && (
+        <Box
+          sx={{
+            p: 1.5,
+            borderRadius: 1,
+            border: "1px solid rgba(245, 158, 11, 0.3)",
+            bgcolor: "rgba(245, 158, 11, 0.06)",
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+          }}
+        >
+          <EmojiEventsIcon sx={{ color: "#F59E0B", fontSize: 20, flexShrink: 0 }} />
+          <Box>
+            <Typography variant="caption" sx={{ color: "#D97706", fontWeight: 700, textTransform: "uppercase", fontSize: "0.65rem" }}>
+              Player of the Match
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 700 }}>
+              {potm}
+            </Typography>
+          </Box>
+        </Box>
+      )}
       {innings.map((inning, index) => {
         const battingTeamName = getTeamNameFromMatch(match, inning?.team);
         const bowlingTeamKey = inning?.team === "teamA" ? "teamB" : "teamA";
@@ -77,9 +104,13 @@ const PublicMatchScorecard = memo(({ match, loading }) => {
             <AccordionDetails sx={{ p: 1.5, pt: 0 }}>
               <Stack spacing={1.5}>
                 <BattingScoreCard battingTeam={battingTeamName} currentInning={inning} />
+                <FallOfWickets fallOfWickets={inning.fallOfWickets} />
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                    Extras: {inning.extras?.[0]?.total || 0}
+                    {`Extras: ${inning.extras?.[0]?.total || 0}`}
+                    <span style={{ fontWeight: 400, marginLeft: 6 }}>
+                      {`(Wd: ${inning.extras?.[0]?.wides || 0}, Nb: ${inning.extras?.[0]?.noBalls || 0}, B: ${inning.extras?.[0]?.byes || 0}, Lb: ${inning.extras?.[0]?.legByes || 0})`}
+                    </span>
                   </Typography>
                 </Box>
                 <BallTimeline

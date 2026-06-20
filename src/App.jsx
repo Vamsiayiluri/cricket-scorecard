@@ -15,6 +15,17 @@ const LiveMatchPage = lazy(() => import("./pages/LiveMatchPage"));
 const PublicScorecardPage = lazy(() => import("./pages/PublicScorecardPage"));
 const MatchDetailsPage = lazy(() => import("./pages/MatchDetailsPage"));
 const EditMatchPage = lazy(() => import("./pages/EditMatchPage"));
+const TeamsPage = lazy(() => import("./pages/TeamsPage"));
+const PlayersPage = lazy(() => import("./pages/PlayersPage"));
+const PlayerProfilePage = lazy(() => import("./pages/PlayerProfilePage"));
+const DiscoverPage = lazy(() => import("./pages/DiscoverPage"));
+const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
+const TournamentsPage = lazy(() => import("./pages/TournamentsPage"));
+const TournamentDetailsPage = lazy(() => import("./pages/TournamentDetailsPage"));
+const PublicTournamentPage = lazy(() => import("./pages/PublicTournamentPage"));
+const ImportsPage = lazy(() => import("./pages/ImportsPage"));
+const ImportHistoryPage = lazy(() => import("./pages/ImportHistoryPage"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 
 const App = () => {
   return (
@@ -25,6 +36,18 @@ const App = () => {
             {/* Public viewer routes — no auth required */}
             <Route path="/live/:matchId" element={<LiveMatchPage />} />
             <Route path="/scorecard/:matchId" element={<PublicScorecardPage />} />
+            <Route path="/t/:tournamentId" element={<PublicTournamentPage />} />
+            <Route path="/discover" element={<DiscoverPage />} />
+
+            {/* Notifications — authenticated users */}
+            <Route
+              path="/notifications"
+              element={
+                <ProtectedRoute>
+                  <NotificationsPage />
+                </ProtectedRoute>
+              }
+            />
 
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
@@ -94,6 +117,74 @@ const App = () => {
                 <ScorerRoute>
                   <MatchScoring />
                 </ScorerRoute>
+              }
+            />
+
+            <Route
+              path="/teams"
+              element={
+                <ScorerRoute>
+                  <TeamsPage />
+                </ScorerRoute>
+              }
+            />
+            <Route
+              path="/players"
+              element={
+                <ScorerRoute>
+                  <PlayersPage />
+                </ScorerRoute>
+              }
+            />
+            <Route
+              path="/players/:playerId"
+              element={
+                <ProtectedRoute>
+                  <PlayerProfilePage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/tournaments"
+              element={
+                <ScorerRoute>
+                  <TournamentsPage />
+                </ScorerRoute>
+              }
+            />
+            <Route
+              path="/tournaments/:tournamentId"
+              element={
+                <ScorerRoute>
+                  <TournamentDetailsPage />
+                </ScorerRoute>
+              }
+            />
+
+            <Route
+              path="/imports"
+              element={
+                <ScorerRoute>
+                  <ImportsPage />
+                </ScorerRoute>
+              }
+            />
+            <Route
+              path="/import-history"
+              element={
+                <ScorerRoute>
+                  <ImportHistoryPage />
+                </ScorerRoute>
+              }
+            />
+
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <SettingsPage />
+                </ProtectedRoute>
               }
             />
 
