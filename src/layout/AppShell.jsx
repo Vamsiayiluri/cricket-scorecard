@@ -1,5 +1,6 @@
 /* eslint-disable react/prop-types */
 import { useMemo, useState } from "react";
+import { useTheme } from "@mui/material/styles";
 import {
   AppBar,
   Box,
@@ -18,25 +19,23 @@ import {
   MenuItem,
   Divider,
   Avatar,
+  Tooltip,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
-import DarkModeIcon from "@mui/icons-material/DarkMode";
-import LightModeIcon from "@mui/icons-material/LightMode";
 import LogoutIcon from "@mui/icons-material/Logout";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
-import AddCircleOutlineOutlinedIcon from "@mui/icons-material/AddCircleOutlineOutlined";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
-import ExploreOutlinedIcon from "@mui/icons-material/ExploreOutlined";
+import SportsCricketIcon from "@mui/icons-material/SportsCricket";
 import EmojiEventsOutlinedIcon from "@mui/icons-material/EmojiEventsOutlined";
 import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
-import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
+import StarBorderOutlinedIcon from "@mui/icons-material/StarBorderOutlined";
+import AddCircleOutlinedIcon from "@mui/icons-material/AddCircleOutlined";
 import NotificationBell from "../components/ui/NotificationBell";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
-import { useThemeMode } from "../context/ThemeModeContext";
 import { useAuth } from "../context/AuthContext";
 import { PUBLIC_ROUTE_PREFIXES } from "../services/firebase/constants";
 import { getRoleLabel } from "../utils/roles";
@@ -46,124 +45,114 @@ const drawerWidth = 260;
 const isPublicPath = (pathname) =>
   PUBLIC_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 
-// Premium Abstract Sports Logo
-export const CricVeloLogo = ({ size = 28, showText = true }) => (
-  <Stack direction="row" spacing={1.2} alignItems="center" sx={{ cursor: "pointer" }}>
-    <Box sx={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-        {/* Speed motion arcs */}
-        <circle cx="16" cy="16" r="13" stroke="url(#ball-grad)" strokeWidth="2.2" strokeDasharray="5 3" />
-        <path d="M4 16C4 9.37258 9.37258 4 16 4" stroke="#22C55E" strokeWidth="2.8" strokeLinecap="round" />
-        <circle cx="16" cy="16" r="7.5" fill="url(#ball-inner)" />
-        <path d="M13 16C13 14.3431 14.3431 13 16 13" stroke="#F8FAFC" strokeWidth="1.2" strokeLinecap="round" />
-        <defs>
-          <linearGradient id="ball-grad" x1="4" y1="4" x2="28" y2="28" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#6C63FF" />
-            <stop offset="1" stopColor="#8B5CF6" />
-          </linearGradient>
-          <linearGradient id="ball-inner" x1="9" y1="9" x2="23" y2="23" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#8B5CF6" />
-            <stop offset="1" stopColor="#6C63FF" />
-          </linearGradient>
-        </defs>
-      </svg>
-    </Box>
-    {showText && (
-      <Typography
-        variant="h3"
+export const CricVeloLogo = ({ size = 36, showText = true }) => {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
+
+  return (
+    <Stack direction="row" spacing={1} alignItems="center" sx={{ cursor: "pointer" }}>
+      {/*
+        Light mode: mix-blend-mode multiply makes the white PNG background
+        invisible against the light AppBar — only the logo artwork shows.
+        Dark mode: a tight white pill wraps the image so colors render accurately
+        against the dark AppBar without bleed or tinting.
+      */}
+      <Box
         sx={{
-          fontWeight: 800,
-          fontSize: { xs: "1.1rem", md: "1.3rem" },
-          background: (theme) =>
-            theme.palette.mode === "dark"
-              ? "linear-gradient(135deg, #F8FAFC 30%, #94A3B8 100%)"
-              : "linear-gradient(135deg, #0f172a 30%, #475569 100%)",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-          letterSpacing: "-0.02em",
           display: "flex",
           alignItems: "center",
-          gap: "2px",
+          justifyContent: "center",
+          flexShrink: 0,
+          ...(isDark
+            ? {
+                bgcolor: "rgba(255,255,255,0.94)",
+                borderRadius: "8px",
+                p: "3px",
+              }
+            : {}),
         }}
       >
-        CRIC<span style={{ color: "#8B5CF6" }}>VELO</span>
-      </Typography>
-    )}
-  </Stack>
-);
+        <Box
+          component="img"
+          src="/cric-velo-logo.png"
+          alt="CricVelo"
+          sx={{
+            height: size,
+            width: "auto",
+            display: "block",
+            objectFit: "contain",
+            mixBlendMode: isDark ? "normal" : "multiply",
+          }}
+        />
+      </Box>
+
+      {showText && (
+        <Typography
+          variant="h3"
+          component="span"
+          sx={{
+            fontWeight: 800,
+            fontSize: { xs: "1.1rem", md: "1.25rem" },
+            letterSpacing: "-0.02em",
+            lineHeight: 1,
+            userSelect: "none",
+          }}
+        >
+          <Box component="span" sx={{ color: "text.primary" }}>CRIC</Box>
+          <Box component="span" sx={{ color: "#3AAA35" }}>VELO</Box>
+        </Typography>
+      )}
+    </Stack>
+  );
+};
 
 const AppShell = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { mode, toggleMode } = useThemeMode();
-  const { isAuthenticated, isScorer, role, logout, user } = useAuth();
+  const { isAuthenticated, isScorer, isViewer, role, logout, user } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileAnchor, setProfileAnchor] = useState(null);
 
   const isAuthPage = location.pathname === "/login" || location.pathname === "/register";
   const isPublicPage = isPublicPath(location.pathname);
 
+  const userInitial = useMemo(() => {
+    const name = user?.displayName || user?.email || "";
+    return name.charAt(0).toUpperCase() || "U";
+  }, [user]);
+
+  const userName = useMemo(() => {
+    if (user?.displayName) return user.displayName;
+    if (user?.email) return user.email.split("@")[0];
+    return "Account";
+  }, [user]);
+
   const navItems = useMemo(() => {
-    const items = [
-      {
-        label: "Dashboard",
-        path: "/dashboard",
-        requiresAuth: true,
-        icon: <DashboardOutlinedIcon fontSize="small" />,
-      },
-      {
-        label: "Discover",
-        path: "/discover",
-        requiresAuth: true,
-        icon: <ExploreOutlinedIcon fontSize="small" />,
-      },
-      {
-        label: "Notifications",
-        path: "/notifications",
-        requiresAuth: true,
-        icon: <NotificationsNoneIcon fontSize="small" />,
-      },
-    ];
     if (isScorer) {
-      items.push({
-        label: "Create Match",
-        path: "/create-match",
-        requiresAuth: true,
-        icon: <AddCircleOutlineOutlinedIcon fontSize="small" />,
-      });
-      items.push({
-        label: "Tournaments",
-        path: "/tournaments",
-        requiresAuth: true,
-        icon: <EmojiEventsOutlinedIcon fontSize="small" />,
-      });
-      items.push({
-        label: "My Teams",
-        path: "/teams",
-        requiresAuth: true,
-        icon: <GroupsOutlinedIcon fontSize="small" />,
-      });
-      items.push({
-        label: "My Players",
-        path: "/players",
-        requiresAuth: true,
-        icon: <PersonOutlinedIcon fontSize="small" />,
-      });
-      items.push({
-        label: "AA Import",
-        path: "/imports",
-        requiresAuth: true,
-        icon: <UploadFileOutlinedIcon fontSize="small" />,
-      });
-      items.push({
-        label: "Import History",
-        path: "/import-history",
-        requiresAuth: true,
-        icon: <HistoryOutlinedIcon fontSize="small" />,
-      });
+      return [
+        { label: "Dashboard",    path: "/dashboard",    icon: <DashboardOutlinedIcon fontSize="small" /> },
+        { label: "Create Match", path: "/create-match", icon: <AddCircleOutlinedIcon fontSize="small" />, isPrimary: true },
+        { label: "Teams",        path: "/teams",        icon: <GroupsOutlinedIcon fontSize="small" /> },
+        { label: "Players",      path: "/players",      icon: <PersonOutlinedIcon fontSize="small" /> },
+        { label: "Tournaments",  path: "/tournaments",  icon: <EmojiEventsOutlinedIcon fontSize="small" /> },
+        { label: "Import Teams", path: "/imports",      icon: <UploadFileOutlinedIcon fontSize="small" /> },
+        { label: "Settings",     path: "/settings",     icon: <SettingsOutlinedIcon fontSize="small" /> },
+      ];
     }
-    return items;
+    return [
+      { label: "Dashboard",    path: "/dashboard",    icon: <DashboardOutlinedIcon fontSize="small" /> },
+      { label: "Live Matches", path: "/discover",     icon: <SportsCricketIcon fontSize="small" /> },
+      { label: "Notifications",path: "/notifications",icon: <NotificationsNoneIcon fontSize="small" /> },
+    ];
   }, [isScorer]);
+
+  // Scorer mobile nav — 5 priority items only (full list accessible via hamburger)
+  const mobileNavItems = useMemo(() => {
+    if (!isScorer) return navItems;
+    return navItems.filter((item) =>
+      ["/dashboard", "/create-match", "/teams", "/tournaments", "/settings"].includes(item.path)
+    );
+  }, [isScorer, navItems]);
 
   const handleLogout = async () => {
     setProfileAnchor(null);
@@ -173,6 +162,35 @@ const AppShell = ({ children }) => {
 
   const handleProfileOpen = (e) => setProfileAnchor(e.currentTarget);
   const handleProfileClose = () => setProfileAnchor(null);
+
+  const navItemSx = (isSelected) => ({
+    borderRadius: 1,
+    mb: 0.5,
+    py: 1.25,
+    px: 2,
+    transition: "all 200ms ease",
+    backgroundColor: isSelected ? "rgba(108, 99, 255, 0.12) !important" : "transparent",
+    border: isSelected ? "1px solid rgba(108, 99, 255, 0.25)" : "1px solid transparent",
+    color: isSelected ? "text.primary" : "text.secondary",
+    "& .MuiListItemIcon-root": {
+      color: isSelected ? "#6C63FF" : "text.secondary",
+      minWidth: 36,
+    },
+    "&:hover": {
+      backgroundColor: (theme) =>
+        isSelected
+          ? "rgba(108, 99, 255, 0.16)"
+          : theme.palette.mode === "dark"
+          ? "rgba(255,255,255,0.03)"
+          : "rgba(15, 23, 42, 0.04)",
+      color: "text.primary",
+      "& .MuiListItemIcon-root": { color: "#6C63FF" },
+    },
+  });
+
+  // Scorer nav index groupings (after Create Match inserted at 1):
+  // [0] Dashboard | [1] Create Match | [2-4] Teams/Players/Tournaments | [5] Import Teams | [6] Settings
+  const scorerDividers = isScorer ? new Set([2, 5, 6]) : new Set();
 
   const drawerContent = (
     <Box
@@ -186,51 +204,27 @@ const AppShell = ({ children }) => {
       }}
     >
       <List sx={{ p: 0, flexGrow: 1 }}>
-        {navItems.map((item) => {
+        {navItems.map((item, idx) => {
           const isSelected = location.pathname === item.path;
           return (
-            <ListItemButton
-              key={item.path}
-              selected={isSelected}
-              onClick={() => {
-                navigate(item.path);
-                setMobileOpen(false);
-              }}
-              sx={{
-                borderRadius: 1,
-                mb: 1,
-                py: 1.25,
-                px: 2,
-                transition: "all 200ms ease",
-                backgroundColor: isSelected ? "rgba(108, 99, 255, 0.12) !important" : "transparent",
-                border: isSelected ? "1px solid rgba(108, 99, 255, 0.25)" : "1px solid transparent",
-                color: isSelected ? "text.primary" : "text.secondary",
-                "& .MuiListItemIcon-root": {
-                  color: isSelected ? "#6C63FF" : "text.secondary",
-                  minWidth: 36,
-                },
-                "&:hover": {
-                  backgroundColor: (theme) =>
-                    isSelected
-                      ? "rgba(108, 99, 255, 0.16)"
-                      : theme.palette.mode === "dark"
-                      ? "rgba(255,255,255,0.03)"
-                      : "rgba(15, 23, 42, 0.04)",
-                  color: "text.primary",
-                  "& .MuiListItemIcon-root": {
-                    color: "#6C63FF",
-                  },
-                },
-              }}
-            >
-              <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText
-                primary={item.label}
-                primaryTypographyProps={{ fontWeight: isSelected ? 700 : 500, fontSize: "0.925rem" }}
-              />
-            </ListItemButton>
+            <Box key={item.path}>
+              {scorerDividers.has(idx) && <Divider sx={{ my: 1, borderColor: "divider" }} />}
+              <ListItemButton
+                selected={isSelected}
+                aria-current={isSelected ? "page" : undefined}
+                onClick={() => { navigate(item.path); setMobileOpen(false); }}
+                sx={navItemSx(isSelected)}
+              >
+                <ListItemIcon>{item.icon}</ListItemIcon>
+                <ListItemText
+                  primary={item.label}
+                  primaryTypographyProps={{ fontWeight: isSelected ? 700 : 500, fontSize: "0.925rem" }}
+                />
+              </ListItemButton>
+            </Box>
           );
         })}
+
         {isPublicPage && (
           <>
             <ListItemButton
@@ -239,7 +233,7 @@ const AppShell = ({ children }) => {
               selected={location.pathname === "/discover"}
               sx={{
                 borderRadius: 1,
-                mb: 1,
+                mb: 0.5,
                 py: 1.25,
                 px: 2,
                 color: "text.secondary",
@@ -258,9 +252,9 @@ const AppShell = ({ children }) => {
               }}
             >
               <ListItemIcon sx={{ minWidth: 36, color: "inherit" }}>
-                <ExploreOutlinedIcon fontSize="small" />
+                <SportsCricketIcon fontSize="small" />
               </ListItemIcon>
-              <ListItemText primary="Discover" primaryTypographyProps={{ fontWeight: 600 }} />
+              <ListItemText primary="Live Matches" primaryTypographyProps={{ fontWeight: 600 }} />
             </ListItemButton>
             <ListItemButton
               component={RouterLink}
@@ -285,10 +279,41 @@ const AppShell = ({ children }) => {
         )}
       </List>
 
-      {/* Footer Details */}
-      <Box sx={{ mt: "auto", pt: 2, borderTop: "1px solid", borderColor: "divider", opacity: 0.8 }}>
+      {/* Become Scorer CTA — viewers only */}
+      {isViewer && (
+        <Box sx={{ mt: 1 }}>
+          <Divider sx={{ mb: 1.5, borderColor: "divider" }} />
+          <Box
+            onClick={() => { navigate("/dashboard"); setMobileOpen(false); }}
+            sx={{
+              cursor: "pointer",
+              px: 2,
+              py: 1.5,
+              borderRadius: 1.5,
+              background: "linear-gradient(135deg, rgba(108,99,255,0.12) 0%, rgba(139,92,246,0.08) 100%)",
+              border: "1px solid rgba(108,99,255,0.22)",
+              "&:hover": { background: "linear-gradient(135deg, rgba(108,99,255,0.18) 0%, rgba(139,92,246,0.12) 100%)" },
+            }}
+          >
+            <Stack direction="row" spacing={1.2} alignItems="center">
+              <StarBorderOutlinedIcon sx={{ fontSize: 18, color: "primary.main" }} />
+              <Box>
+                <Typography variant="body2" sx={{ fontWeight: 700, color: "primary.main", fontSize: "0.85rem" }}>
+                  Become a Scorer
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.3 }}>
+                  Create and score matches
+                </Typography>
+              </Box>
+            </Stack>
+          </Box>
+        </Box>
+      )}
+
+      {/* Sidebar footer */}
+      <Box sx={{ mt: 1.5, pt: 1.5, borderTop: "1px solid", borderColor: "divider", opacity: 0.6 }}>
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", textAlign: "center" }}>
-          CricVelo Match Center v1.2
+          CricVelo {import.meta.env.VITE_APP_VERSION ? `v${import.meta.env.VITE_APP_VERSION}` : ""}
         </Typography>
       </Box>
     </Box>
@@ -321,6 +346,7 @@ const AppShell = ({ children }) => {
               <IconButton
                 edge="start"
                 onClick={() => setMobileOpen(true)}
+                aria-label="Open navigation menu"
                 sx={{ display: { md: "none" }, mr: 1, color: "text.primary" }}
               >
                 <MenuIcon />
@@ -332,7 +358,6 @@ const AppShell = ({ children }) => {
           </Stack>
 
           <Stack direction="row" spacing={1.5} alignItems="center">
-            {/* Live Indicator inside top nav */}
             {isPublicPage && (
               <Chip
                 label="Live Match Center"
@@ -346,10 +371,6 @@ const AppShell = ({ children }) => {
                 }}
               />
             )}
-
-            <IconButton onClick={toggleMode} color="inherit" sx={{ border: "1px solid", borderColor: "divider", p: 1, borderRadius: 1 }}>
-              {mode === "dark" ? <LightModeIcon sx={{ fontSize: 20 }} /> : <DarkModeIcon sx={{ fontSize: 20 }} />}
-            </IconButton>
 
             {isAuthenticated && (
               <NotificationBell uid={user?.uid} />
@@ -400,11 +421,11 @@ const AppShell = ({ children }) => {
                       fontWeight: 700,
                     }}
                   >
-                    U
+                    {userInitial}
                   </Avatar>
                   <Box sx={{ display: { xs: "none", lg: "block" } }}>
                     <Typography variant="body2" sx={{ fontWeight: 700, fontSize: "0.825rem", color: "text.primary" }}>
-                      User Account
+                      {userName}
                     </Typography>
                     <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: -0.3 }}>
                       {getRoleLabel(role)}
@@ -432,9 +453,14 @@ const AppShell = ({ children }) => {
                   anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
                 >
                   <Box sx={{ px: 2, py: 1.5 }}>
-                    <Typography variant="body1" sx={{ fontWeight: 700 }}>
-                      Operational Panel
+                    <Typography variant="body1" sx={{ fontWeight: 700, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {userName}
                     </Typography>
+                    {user?.email && (
+                      <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.2, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {user.email}
+                      </Typography>
+                    )}
                     <Chip
                       size="small"
                       label={getRoleLabel(role)}
@@ -555,27 +581,26 @@ const AppShell = ({ children }) => {
             overflow: "hidden",
           }}
         >
-          <Stack direction="row" sx={{ p: 0.5 }}>
-            {navItems.map((item) => {
+          <Stack direction="row" sx={{ p: 0.5 }} justifyContent="space-around">
+            {mobileNavItems.map((item) => {
               const isSelected = location.pathname === item.path;
               return (
-                <Button
-                  key={item.path}
-                  onClick={() => navigate(item.path)}
-                  startIcon={item.icon}
-                  sx={{
-                    flex: 1,
-                    minHeight: 46,
-                    borderRadius: 1,
-                    color: isSelected ? "primary.main" : "text.secondary",
-                    bgcolor: isSelected ? "rgba(108, 99, 255, 0.1)" : "transparent",
-                    fontWeight: 800,
-                    fontSize: "0.78rem",
-                    "& .MuiButton-startIcon": { mr: 0.5 },
-                  }}
-                >
-                  {item.label}
-                </Button>
+                <Tooltip key={item.path} title={item.label} placement="top">
+                  <IconButton
+                    onClick={() => navigate(item.path)}
+                    aria-label={item.label}
+                    aria-current={isSelected ? "page" : undefined}
+                    sx={{
+                      flex: 1,
+                      minHeight: 48,
+                      borderRadius: 1,
+                      color: isSelected ? "primary.main" : "text.secondary",
+                      bgcolor: isSelected ? "rgba(108, 99, 255, 0.1)" : "transparent",
+                    }}
+                  >
+                    {item.icon}
+                  </IconButton>
+                </Tooltip>
               );
             })}
           </Stack>

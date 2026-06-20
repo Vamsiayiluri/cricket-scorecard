@@ -49,7 +49,7 @@ const MatchScoring = () => {
   };
 
   return (
-    <PageContainer title="Match Setup" subtitle="Choose opening players and bowler before innings starts.">
+    <PageContainer title="Match Setup" subtitle="Choose opening batters and bowler before the innings starts.">
       <Paper
         sx={{
           p: { xs: 2, md: 2.5 },
@@ -58,9 +58,9 @@ const MatchScoring = () => {
             "linear-gradient(120deg, rgba(108,99,255,0.24) 0%, rgba(139,92,246,0.16) 50%, rgba(34,197,94,0.1) 100%)",
         }}
       >
-        <Typography variant="h3">Pre-Match Console</Typography>
+        <Typography variant="h3">Opening Setup</Typography>
         <Typography variant="body2" color="text.secondary">
-          Configure opening batter pair and first bowler with a clean live-scoring workflow.
+          Select the opening batters and first bowler to begin the innings.
         </Typography>
       </Paper>
       {loading && <PageLoading text="Loading match details..." />}

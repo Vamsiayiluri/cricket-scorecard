@@ -12,6 +12,7 @@ import {
 } from "firebase/firestore";
 import db from "../../firebase-config";
 import { trackImportCompleted } from "../analytics/analyticsService";
+import { assertFirestoreSafePayload } from "../../utils/firestoreValidation";
 import { COLLECTIONS } from "./constants";
 import { fetchQuery } from "./firestoreHelpers";
 import { getUserTeams, createTeam } from "./teamService";
@@ -42,6 +43,7 @@ export const createImportRecord = async ({ fileName, importedBy }) => {
 };
 
 export const updateImportRecord = async (importId, data) => {
+  assertFirestoreSafePayload(data);
   await updateDoc(importDoc(importId), { ...data });
 };
 
@@ -82,6 +84,36 @@ export const executeImport = async ({
   teamConflict = "merge",
   playerConflict = "update",
   onProgress,
+}) => {
+  // Mark as running immediately so a mid-run crash is detectable on re-open.
+  // If this update itself fails, we throw before touching any teams/players.
+  await updateImportRecord(importId, { status: "Running", startedAt: new Date() });
+
+  try {
+    return await _executeImportPhases({
+      importId, importBatchId, teams, players, createdBy,
+      teamConflict, playerConflict, onProgress,
+    });
+  } catch (err) {
+    // Best-effort: persist Failed status so re-runs can detect the partial state
+    // and the UI can offer rollback rather than silently creating duplicates.
+    try {
+      await updateImportRecord(importId, {
+        status: "Failed",
+        errorMessage: err?.message || "Import failed unexpectedly.",
+        failedAt: new Date(),
+      });
+    } catch {
+      // Secondary write failure — swallow so the original error propagates
+    }
+    throw err;
+  }
+};
+
+// Internal: all phases. Separated so the outer function owns status lifecycle.
+const _executeImportPhases = async ({
+  importId, importBatchId, teams, players, createdBy,
+  teamConflict, playerConflict, onProgress,
 }) => {
   const existingTeams = await getUserTeams(createdBy);
   const existingPlayers = await getUserPlayers(createdBy);

@@ -37,10 +37,10 @@ const AppProviders = () => {
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <ErrorBoundary>
-      <Provider store={store}>
+    <Provider store={store}>
+      <ErrorBoundary>
         <AppProviders />
-      </Provider>
-    </ErrorBoundary>
+      </ErrorBoundary>
+    </Provider>
   </React.StrictMode>
 );

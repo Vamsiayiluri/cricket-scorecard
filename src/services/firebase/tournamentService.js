@@ -13,6 +13,7 @@ import db from "../../firebase-config";
 import { COLLECTIONS } from "./constants";
 import { fetchDocument } from "./firestoreHelpers";
 import { trackTournamentCreated } from "../analytics/analyticsService";
+import { assertFirestoreSafePayload } from "../../utils/firestoreValidation";
 
 export const TOURNAMENT_STATUS = {
   DRAFT: "Draft",
@@ -50,12 +51,14 @@ export const createTournament = async (data, organizerId) => {
     updatedAt: now,
     archivedAt: null,
   };
+  assertFirestoreSafePayload(payload);
   await setDoc(tournamentDoc(tournamentId), payload);
   trackTournamentCreated({ tournament_id: tournamentId, format: payload.format });
   return payload;
 };
 
 export const updateTournament = async (tournamentId, patch) => {
+  assertFirestoreSafePayload(patch);
   await updateDoc(tournamentDoc(tournamentId), { ...patch, updatedAt: new Date() });
 };
 

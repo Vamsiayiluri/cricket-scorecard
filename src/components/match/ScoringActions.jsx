@@ -291,7 +291,7 @@ const ScorecardActions = ({
         <Grid item xs={12}>
           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
             <Typography variant="h4" sx={{ fontWeight: 800, color: "text.primary" }}>
-              Active Extras
+              Extras
             </Typography>
             <Tooltip title="Configure extra categories before submitting runs." placement="right">
               <IconButton size="small" sx={{ color: "text.secondary" }}>
@@ -313,7 +313,7 @@ const ScorecardActions = ({
                     borderRadius: 1, // inherits 8px
                     px: 1.5,
                     py: 0.65,
-                    minHeight: { xs: 38, sm: 34 },
+                    minHeight: { xs: 44, sm: 38 },
                     fontWeight: 700,
                     fontSize: "0.75rem",
                     letterSpacing: "0.01em",
@@ -351,7 +351,7 @@ const ScorecardActions = ({
         <Grid item xs={12}>
           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
             <Typography variant="h4" sx={{ fontWeight: 800, color: "text.primary" }}>
-              Input Delivery
+              Record Delivery
             </Typography>
             {isLocked && !isWicketDialogOpen && (
               <Box

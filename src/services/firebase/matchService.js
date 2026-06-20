@@ -83,6 +83,7 @@ export const buildMatchFromForm = (formData) => {
 
 export const createMatch = async (formData) => {
   const matchData = buildMatchFromForm(formData);
+  assertFirestoreSafePayload(matchData);
   await setDoc(matchDoc(matchData.matchId), matchData);
   trackMatchCreated({
     match_id: matchData.matchId,
@@ -127,6 +128,7 @@ export const patchMatchById = async (matchId, patch) => {
   if (!matchId) {
     throw new Error("matchId is required");
   }
+  assertFirestoreSafePayload(patch);
   await updateDoc(matchDoc(matchId), { ...patch, updatedAt: new Date() });
 };
 

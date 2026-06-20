@@ -9,6 +9,8 @@ import {
   Chip,
   Divider,
   Alert,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
 import { useSearchParams } from "react-router-dom";
 import {
@@ -1094,14 +1096,14 @@ const Scorecard = () => {
             <Button
               color="error"
               variant="contained"
-              disabled={!endInningsConfirmed}
+              disabled={!endInningsConfirmed || isEndingInnings}
               onClick={async () => {
                 await handleEndOfInnings();
                 setIsEndInningsDialogOpen(false);
                 setEndInningsConfirmed(false);
               }}
             >
-              End Innings
+              {isEndingInnings ? "Ending…" : "End Innings"}
             </Button>
           </>
         }
@@ -1110,17 +1112,23 @@ const Scorecard = () => {
           This will close the current innings and cannot be undone. Make sure all balls in the
           current over have been recorded correctly.
         </Typography>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, p: 1.5, border: "1px solid", borderColor: "warning.main", borderRadius: 1, bgcolor: "rgba(245,158,11,0.06)" }}>
-          <input
-            type="checkbox"
-            id="end-innings-confirm"
-            checked={endInningsConfirmed}
-            onChange={(e) => setEndInningsConfirmed(e.target.checked)}
-            style={{ width: 18, height: 18, cursor: "pointer", accentColor: "#EF4444" }}
+        <Box sx={{ p: 1.5, border: "1px solid", borderColor: "warning.main", borderRadius: 1, bgcolor: "rgba(245,158,11,0.06)" }}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={endInningsConfirmed}
+                onChange={(e) => setEndInningsConfirmed(e.target.checked)}
+                color="error"
+                sx={{ p: 1 }}
+              />
+            }
+            label={
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                I confirm this innings is complete
+              </Typography>
+            }
+            sx={{ m: 0 }}
           />
-          <label htmlFor="end-innings-confirm" style={{ cursor: "pointer", fontSize: "0.85rem", fontWeight: 600 }}>
-            I confirm this innings is complete
-          </label>
         </Box>
       </AppDialog>
       <AppDialog

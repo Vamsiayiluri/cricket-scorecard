@@ -8,6 +8,7 @@ import RecentActivityCard from "../components/Dashboard/RecentActivityCard";
 import AppButton from "../components/ui/AppButton";
 import PageContainer from "../components/ui/PageContainer";
 import ErrorState from "../components/ui/ErrorState";
+import EmptyState from "../components/ui/EmptyState";
 import { useNavigate } from "react-router-dom";
 import useDashboardMatches from "../hooks/firebase/useDashboardMatches";
 import { useAuth } from "../context/AuthContext";
@@ -66,48 +67,68 @@ const DashboardPage = () => {
     }
   };
 
+  const hasAnyMatches = ongoing.length > 0 || upcoming.length > 0 || completed.length > 0;
+
   return (
     <PageContainer
-      title="Match Operations Hub"
+      title="Dashboard"
       subtitle={
         isScorer
-          ? "Create, manage, and livestream professional-grade cricket scorecards."
-          : "Browse live scoreboards, match summaries, and analytics tickers."
+          ? "Manage your matches, teams, and tournaments."
+          : "Browse live scores and recent match results."
       }
     >
       {error && <ErrorState message={error.message || "Unable to load dashboard data."} />}
 
-      {/* Resume Scoring — shown for scorers with an active in-progress match */}
-      {resumeMatches.length > 0 && (
-        <Paper
-          variant="outlined"
-          sx={{ mb: 2, p: 2, borderColor: "error.main", bgcolor: "rgba(239,68,68,0.04)", borderRadius: 2 }}
-        >
-          <Stack direction={{ xs: "column", sm: "row" }} alignItems={{ sm: "center" }} justifyContent="space-between" spacing={1.5}>
-            <Stack direction="row" spacing={1.5} alignItems="center">
-              <PlayCircleOutlineIcon sx={{ color: "error.main" }} />
-              <Box>
-                <Typography variant="subtitle2" fontWeight={700}>
-                  You have an active match in progress
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {resumeMatches[0].matchDetails?.teamA} vs {resumeMatches[0].matchDetails?.teamB}
-                  {resumeMatches.length > 1 && ` · +${resumeMatches.length - 1} more`}
-                </Typography>
-              </Box>
+      {/* Resume Scoring — shown for scorers with active in-progress matches */}
+      {resumeMatches.length > 0 && resumeMatches.map((m, idx) => {
+        const inningIdx = (m.scoreCard?.currentInning ?? 1) - 1;
+        const inning = m.scoreCard?.innings?.[inningIdx];
+        const runs = inning?.runs ?? null;
+        const wickets = inning?.wickets ?? null;
+        const balls = inning?.balls ?? null;
+        const overs = balls != null ? `${Math.floor(balls / 6)}.${balls % 6}` : null;
+        const scoreStr = runs != null && wickets != null
+          ? `${runs}/${wickets}${overs ? ` (${overs} ov)` : ""}`
+          : null;
+        return (
+          <Paper
+            key={m.matchId}
+            variant="outlined"
+            sx={{ mb: 2, p: 2, borderColor: "error.main", bgcolor: "rgba(239,68,68,0.04)", borderRadius: 2 }}
+          >
+            <Stack direction={{ xs: "column", sm: "row" }} alignItems={{ sm: "center" }} justifyContent="space-between" spacing={1.5}>
+              <Stack direction="row" spacing={1.5} alignItems="center">
+                <PlayCircleOutlineIcon sx={{ color: "error.main", flexShrink: 0 }} />
+                <Box>
+                  <Typography variant="subtitle2" fontWeight={700}>
+                    {idx === 0 && resumeMatches.length === 1
+                      ? "Active match in progress"
+                      : `Match ${idx + 1} of ${resumeMatches.length} in progress`}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {m.matchDetails?.teamA} vs {m.matchDetails?.teamB}
+                    {scoreStr && (
+                      <Box component="span" sx={{ ml: 1, fontWeight: 700, color: "error.main" }}>
+                        · {scoreStr}
+                      </Box>
+                    )}
+                  </Typography>
+                </Box>
+              </Stack>
+              <AppButton
+                variant="contained"
+                onClick={() => navigate(`/score-card?matchId=${m.matchId}`)}
+                sx={{ flexShrink: 0, bgcolor: "error.main", "&:hover": { bgcolor: "error.dark" } }}
+              >
+                Resume Scoring
+              </AppButton>
             </Stack>
-            <AppButton
-              variant="contained"
-              onClick={() => navigate(`/score-card?matchId=${resumeMatches[0].matchId}`)}
-              sx={{ flexShrink: 0, bgcolor: "error.main", "&:hover": { bgcolor: "error.dark" } }}
-            >
-              Resume Scoring
-            </AppButton>
-          </Stack>
-        </Paper>
-      )}
+          </Paper>
+        );
+      })}
 
-      {isViewer && !emailVerified && (
+      {isViewer && !emailVerified && !isScorer && (
         <Paper
           variant="outlined"
           sx={{ mb: 2, p: 2, borderColor: "warning.main", bgcolor: "rgba(245,158,11,0.04)", borderRadius: 2 }}
@@ -134,7 +155,7 @@ const DashboardPage = () => {
         </Paper>
       )}
 
-      {isViewer && emailVerified && (
+      {isViewer && emailVerified && !isScorer && (
         <Paper
           variant="outlined"
           sx={{ mb: 2.5, p: 2, borderColor: "primary.main", bgcolor: "rgba(108,99,255,0.04)", borderRadius: 2 }}
@@ -163,42 +184,62 @@ const DashboardPage = () => {
         </Paper>
       )}
 
-      <Grid container spacing={2} className="animate-fade-in">
-        <Grid item xs={12}>
-          <MatchOverviewCard stats={stats} loading={loading} />
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <OngoingMatchesCard matches={ongoing} loading={loading} />
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <UpcomingMatchesCard matches={upcoming} loading={loading} />
-        </Grid>
-        <Grid item xs={12} lg={6}>
-          <CompletedMatchesCard matches={completed} loading={loading} />
-        </Grid>
-        <Grid item xs={12} lg={6}>
-          <RecentActivityCard matches={recentActivity} loading={loading} />
-        </Grid>
-      </Grid>
+      {isScorer && !loading && !hasAnyMatches && (
+        <EmptyState
+          icon="match"
+          title="No matches yet"
+          description="Create your first match to start scoring. Your matches will appear here once created."
+          action={
+            <AppButton
+              onClick={() => navigate("/create-match")}
+              sx={{ background: "linear-gradient(135deg, #6C63FF 0%, #8B5CF6 100%)" }}
+            >
+              Create Match
+            </AppButton>
+          }
+        />
+      )}
 
-      {isScorer && (
-        <Box sx={{ textAlign: "center", mt: 2.5 }}>
-          <AppButton
-            onClick={() => navigate("/create-match")}
-            startIcon={<AddIcon />}
-            aria-label="Create a new match"
-            sx={{
-              py: 1,
-              width: "100%",
-              maxWidth: 380,
-              fontSize: "0.85rem",
-              background: "linear-gradient(135deg, #6C63FF 0%, #8B5CF6 100%)",
-              boxShadow: "0 4px 12px rgba(108, 99, 255, 0.2)",
-            }}
-          >
-            Create Match
-          </AppButton>
-        </Box>
+      {(!isScorer || hasAnyMatches || loading) && (
+        <>
+          <Grid container spacing={2} className="animate-fade-in">
+            <Grid item xs={12}>
+              <MatchOverviewCard stats={stats} loading={loading} />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <OngoingMatchesCard matches={ongoing} loading={loading} />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <UpcomingMatchesCard matches={upcoming} loading={loading} />
+            </Grid>
+            <Grid item xs={12} lg={6}>
+              <CompletedMatchesCard matches={completed} loading={loading} />
+            </Grid>
+            <Grid item xs={12} lg={6}>
+              <RecentActivityCard matches={recentActivity} loading={loading} />
+            </Grid>
+          </Grid>
+
+          {isScorer && (
+            <Box sx={{ textAlign: "center", mt: 2.5 }}>
+              <AppButton
+                onClick={() => navigate("/create-match")}
+                startIcon={<AddIcon />}
+                aria-label="Create a new match"
+                sx={{
+                  py: 1,
+                  width: "100%",
+                  maxWidth: 380,
+                  fontSize: "0.85rem",
+                  background: "linear-gradient(135deg, #6C63FF 0%, #8B5CF6 100%)",
+                  boxShadow: "0 4px 12px rgba(108, 99, 255, 0.2)",
+                }}
+              >
+                Create Match
+              </AppButton>
+            </Box>
+          )}
+        </>
       )}
     </PageContainer>
   );
