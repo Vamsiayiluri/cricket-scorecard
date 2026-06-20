@@ -26,6 +26,7 @@ const PublicTournamentPage = lazy(() => import("./pages/PublicTournamentPage"));
 const ImportsPage = lazy(() => import("./pages/ImportsPage"));
 const ImportHistoryPage = lazy(() => import("./pages/ImportHistoryPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const ScorerRequestsPage = lazy(() => import("./pages/ScorerRequestsPage"));
 
 const App = () => {
   return (
@@ -175,6 +176,15 @@ const App = () => {
               element={
                 <ScorerRoute>
                   <ImportHistoryPage />
+                </ScorerRoute>
+              }
+            />
+
+            <Route
+              path="/scorer-requests"
+              element={
+                <ScorerRoute>
+                  <ScorerRequestsPage />
                 </ScorerRoute>
               }
             />

@@ -3,7 +3,7 @@ import db from "../../firebase-config";
 import { COLLECTIONS, SCORER_ROLES, USER_ROLES } from "./constants";
 import { fetchDocument, subscribeToDocument } from "./firestoreHelpers";
 
-const userDoc = (uid) => doc(db, COLLECTIONS.USERS, uid);
+export const userDoc = (uid) => doc(db, COLLECTIONS.USERS, uid);
 
 /**
  * Resolve effective role. Missing profile defaults to viewer for safe MVP access.

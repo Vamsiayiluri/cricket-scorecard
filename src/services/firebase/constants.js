@@ -6,6 +6,7 @@ export const COLLECTIONS = {
   USERS: "users",
   TOURNAMENTS: "tournaments",
   IMPORTS: "imports",
+  SCORER_REQUESTS: "scorer_requests",
 };
 
 /** User roles — lightweight RBAC. */

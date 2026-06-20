@@ -33,6 +33,7 @@ import EmojiEventsOutlinedIcon from "@mui/icons-material/EmojiEventsOutlined";
 import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 import StarBorderOutlinedIcon from "@mui/icons-material/StarBorderOutlined";
 import AddCircleOutlinedIcon from "@mui/icons-material/AddCircleOutlined";
+import HowToRegOutlinedIcon from "@mui/icons-material/HowToRegOutlined";
 import NotificationBell from "../components/ui/NotificationBell";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
@@ -135,8 +136,9 @@ const AppShell = ({ children }) => {
         { label: "Teams",        path: "/teams",        icon: <GroupsOutlinedIcon fontSize="small" /> },
         { label: "Players",      path: "/players",      icon: <PersonOutlinedIcon fontSize="small" /> },
         { label: "Tournaments",  path: "/tournaments",  icon: <EmojiEventsOutlinedIcon fontSize="small" /> },
-        { label: "Import Teams", path: "/imports",      icon: <UploadFileOutlinedIcon fontSize="small" /> },
-        { label: "Settings",     path: "/settings",     icon: <SettingsOutlinedIcon fontSize="small" /> },
+        { label: "Import Teams",    path: "/imports",          icon: <UploadFileOutlinedIcon fontSize="small" /> },
+        { label: "Scorer Requests", path: "/scorer-requests", icon: <HowToRegOutlinedIcon fontSize="small" /> },
+        { label: "Settings",        path: "/settings",         icon: <SettingsOutlinedIcon fontSize="small" /> },
       ];
     }
     return [
@@ -188,9 +190,9 @@ const AppShell = ({ children }) => {
     },
   });
 
-  // Scorer nav index groupings (after Create Match inserted at 1):
-  // [0] Dashboard | [1] Create Match | [2-4] Teams/Players/Tournaments | [5] Import Teams | [6] Settings
-  const scorerDividers = isScorer ? new Set([2, 5, 6]) : new Set();
+  // Scorer nav index groupings:
+  // [0] Dashboard | [1] Create Match | [2-4] Teams/Players/Tournaments | [5-6] Import Teams/Scorer Requests | [7] Settings
+  const scorerDividers = isScorer ? new Set([2, 5, 7]) : new Set();
 
   const drawerContent = (
     <Box
