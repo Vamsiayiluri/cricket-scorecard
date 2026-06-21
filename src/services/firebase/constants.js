@@ -45,4 +45,4 @@ export const MATCH_FIELDS = {
 };
 
 /** Public viewer route prefixes (no auth required). */
-export const PUBLIC_ROUTE_PREFIXES = ["/live/", "/scorecard/", "/discover"];
+export const PUBLIC_ROUTE_PREFIXES = ["/live/", "/scorecard/", "/t/", "/discover", "/results"];

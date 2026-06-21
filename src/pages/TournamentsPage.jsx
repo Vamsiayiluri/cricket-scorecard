@@ -22,6 +22,7 @@ import TournamentFormDialog from "../components/tournament/TournamentFormDialog"
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import useUserTournaments from "../hooks/firebase/useUserTournaments";
+import usePublicTournaments from "../hooks/firebase/usePublicTournaments";
 import {
   createTournament,
   TOURNAMENT_STATUS,
@@ -55,7 +56,7 @@ const StatusChip = ({ status }) => {
 
 // ── Tournament card ───────────────────────────────────────────────────────────
 
-const TournamentCard = ({ tournament, onOpen }) => {
+const TournamentCard = ({ tournament, onOpen, actionLabel = "View" }) => {
   const teamCount = tournament.teamIds?.length || 0;
 
   return (
@@ -140,20 +141,82 @@ const TournamentCard = ({ tournament, onOpen }) => {
           startIcon={<OpenInNewIcon sx={{ fontSize: "0.9rem !important" }} />}
           sx={{ minHeight: 32, fontSize: "0.78rem", flexShrink: 0 }}
         >
-          Manage
+          {actionLabel}
         </AppButton>
       </Stack>
     </Paper>
   );
 };
 
+const TournamentSection = ({ title, tournaments, loading, error, emptyMessage, onOpen, actionLabel }) => (
+  <Box sx={{ mb: 4 }}>
+    <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+      <Typography variant="h4" sx={{ fontWeight: 800 }}>
+        {title}
+      </Typography>
+      {!loading && (
+        <Chip
+          size="small"
+          label={tournaments.length}
+          sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
+        />
+      )}
+    </Stack>
+
+    {!loading && error && (
+      <Paper variant="outlined" sx={{ p: 3, borderColor: "error.main", borderRadius: 2, textAlign: "center" }}>
+        <Typography variant="body2" color="error.main" fontWeight={700}>Failed to load tournaments</Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+          {error.message || "Check your connection or Firestore index configuration."}
+        </Typography>
+      </Paper>
+    )}
+
+    {loading && (
+      <Stack spacing={1.5}>
+        {[0, 1, 2].map((i) => (
+          <Paper key={i} variant="outlined" sx={{ p: 2, borderColor: "divider", borderRadius: 2 }}>
+            <Skeleton variant="text" width="40%" height={24} sx={{ mb: 0.5 }} />
+            <Skeleton variant="text" width="60%" height={16} sx={{ mb: 0.75 }} />
+            <Skeleton variant="rectangular" width={80} height={18} sx={{ borderRadius: 1 }} />
+          </Paper>
+        ))}
+      </Stack>
+    )}
+
+    {!loading && !error && tournaments.length === 0 && (
+      <Paper variant="outlined" sx={{ p: 3, textAlign: "center", borderColor: "divider", borderRadius: 2 }}>
+        <Typography variant="body2" color="text.secondary">{emptyMessage}</Typography>
+      </Paper>
+    )}
+
+    {!loading && tournaments.length > 0 && (
+      <Stack spacing={1.5}>
+        {tournaments.map((t) => (
+          <TournamentCard
+            key={t.tournamentId}
+            tournament={t}
+            onOpen={onOpen}
+            actionLabel={actionLabel}
+          />
+        ))}
+      </Stack>
+    )}
+  </Box>
+);
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 const TournamentsPage = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isScorer } = useAuth();
   const { showToast } = useToast();
   const { tournaments, loading, error } = useUserTournaments();
+  const {
+    tournaments: publicTournaments,
+    loading: publicLoading,
+    error: publicError,
+  } = usePublicTournaments();
 
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -162,6 +225,10 @@ const TournamentsPage = () => {
   const filtered = tournaments.filter((t) =>
     t.name.toLowerCase().includes(search.toLowerCase())
   );
+
+  const filteredPublic = publicTournaments
+    .filter((t) => t.organizerId !== user?.uid)
+    .filter((t) => t.name.toLowerCase().includes(search.toLowerCase()));
 
   const handleCreate = async (formData) => {
     setSaving(true);
@@ -180,7 +247,7 @@ const TournamentsPage = () => {
   return (
     <PageContainer
       title="Tournaments"
-      subtitle="Create and manage your cricket tournaments."
+      subtitle={isScorer ? "Manage your tournaments and browse public competitions." : "Browse public cricket tournaments."}
     >
       <Stack
         direction={{ xs: "column", sm: "row" }}
@@ -192,24 +259,19 @@ const TournamentsPage = () => {
         <Stack direction="row" alignItems="center" spacing={1.25}>
           <EmojiEventsIcon sx={{ color: "primary.main", fontSize: 24 }} />
           <Typography variant="h4" sx={{ fontWeight: 800 }}>
-            My Tournaments
+            Tournaments
           </Typography>
-          {!loading && (
-            <Chip
-              size="small"
-              label={tournaments.length}
-              sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
-            />
-          )}
         </Stack>
-        <AppButton
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setDialogOpen(true)}
-          sx={{ minHeight: 36 }}
-        >
-          Create Tournament
-        </AppButton>
+        {isScorer && (
+          <AppButton
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setDialogOpen(true)}
+            sx={{ minHeight: 36 }}
+          >
+            Create Tournament
+          </AppButton>
+        )}
       </Stack>
 
       <AppInput
@@ -230,71 +292,27 @@ const TournamentsPage = () => {
 
       <Divider sx={{ mb: 2.5 }} />
 
-      {/* Query error */}
-      {!loading && error && (
-        <Paper variant="outlined" sx={{ p: 3, borderColor: "error.main", borderRadius: 2, textAlign: "center" }}>
-          <Typography variant="body2" color="error.main" fontWeight={700}>Failed to load tournaments</Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
-            {error.message || "Check your connection or Firestore index configuration."}
-          </Typography>
-        </Paper>
+      {isScorer && (
+        <TournamentSection
+          title="My Tournaments"
+          tournaments={filtered}
+          loading={loading}
+          error={error}
+          emptyMessage="No tournaments yet. Create your first tournament to organize matches, manage teams, and track results."
+          onOpen={(id) => navigate(`/tournaments/${id}`)}
+          actionLabel="Manage"
+        />
       )}
 
-      {/* Loading skeletons */}
-      {loading && (
-        <Stack spacing={1.5}>
-          {[0, 1, 2].map((i) => (
-            <Paper
-              key={i}
-              variant="outlined"
-              sx={{ p: 2, borderColor: "divider", borderRadius: 2 }}
-            >
-              <Skeleton variant="text" width="40%" height={24} sx={{ mb: 0.5 }} />
-              <Skeleton variant="text" width="60%" height={16} sx={{ mb: 0.75 }} />
-              <Skeleton variant="rectangular" width={80} height={18} sx={{ borderRadius: 1 }} />
-            </Paper>
-          ))}
-        </Stack>
-      )}
-
-      {/* Empty state */}
-      {!loading && tournaments.length === 0 && (
-        <Paper
-          variant="outlined"
-          sx={{ p: 4, textAlign: "center", borderColor: "divider", borderRadius: 2 }}
-        >
-          <EmojiEventsIcon sx={{ fontSize: 48, color: "text.disabled", mb: 1 }} />
-          <Typography variant="body1" sx={{ fontWeight: 600, mb: 0.5 }}>
-            No tournaments yet
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Create your first tournament to organize matches, manage teams, and track results.
-          </Typography>
-          <AppButton variant="contained" onClick={() => setDialogOpen(true)} startIcon={<AddIcon />}>
-            Create Tournament
-          </AppButton>
-        </Paper>
-      )}
-
-      {/* Tournament list */}
-      {!loading && filtered.length > 0 && (
-        <Stack spacing={1.5}>
-          {filtered.map((t) => (
-            <TournamentCard
-              key={t.tournamentId}
-              tournament={t}
-              onOpen={(id) => navigate(`/tournaments/${id}`)}
-            />
-          ))}
-        </Stack>
-      )}
-
-      {/* No search match */}
-      {!loading && tournaments.length > 0 && filtered.length === 0 && (
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-          No tournaments match &quot;{search}&quot;.
-        </Typography>
-      )}
+      <TournamentSection
+        title="Public Tournaments"
+        tournaments={filteredPublic}
+        loading={publicLoading}
+        error={publicError}
+        emptyMessage={isScorer ? "No other public tournaments found." : "No public tournaments found."}
+        onOpen={(id) => navigate(`/tournaments/${id}`)}
+        actionLabel="View"
+      />
 
       <TournamentFormDialog
         open={dialogOpen}

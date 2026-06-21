@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import { useEffect, useState } from "react";
 import {
   Box,
@@ -30,6 +31,7 @@ import {
   rejectMatchAccess,
   MATCH_ACCESS_STATUS,
 } from "../services/firebase/matchAccessService";
+import { USER_ROLES } from "../services/firebase/constants";
 
 const statusChip = (status, isPending) =>
   isPending
@@ -71,7 +73,7 @@ const ScorerRoleRequests = ({ user }) => {
       })
       .catch(() => showToast("Could not load scorer requests.", "error"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [showToast]);
 
   const handleApprove = async (req) => {
     setActioning(req.requestId);
@@ -180,7 +182,7 @@ const MatchAccessRequests = ({ user }) => {
       .then(setRequests)
       .catch(() => showToast("Could not load match access requests.", "error"))
       .finally(() => setLoading(false));
-  }, [user?.uid]);
+  }, [showToast, user?.uid]);
 
   const handleApprove = async (req) => {
     setActioning(req.requestId);
@@ -282,25 +284,26 @@ const MatchAccessRequests = ({ user }) => {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 const ScorerRequestsPage = () => {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const [tab, setTab] = useState(0);
+  const canReviewScorerRoles = role === USER_ROLES.SCORER;
 
   return (
     <PageContainer
       title="Requests"
-      subtitle="Approve scorer role requests and match access requests."
+      subtitle={canReviewScorerRoles ? "Approve scorer role requests and match access requests." : "Approve match access requests for your matches."}
     >
       <Tabs
         value={tab}
         onChange={(_, v) => setTab(v)}
         sx={{ mb: 3, borderBottom: "1px solid", borderColor: "divider" }}
       >
-        <Tab label="Scorer Role Requests" />
+        {canReviewScorerRoles && <Tab label="Scorer Role Requests" />}
         <Tab label="Match Access Requests" />
       </Tabs>
 
-      {tab === 0 && <ScorerRoleRequests user={user} />}
-      {tab === 1 && <MatchAccessRequests user={user} />}
+      {canReviewScorerRoles && tab === 0 && <ScorerRoleRequests user={user} />}
+      {(!canReviewScorerRoles || tab === 1) && <MatchAccessRequests user={user} />}
     </PageContainer>
   );
 };

@@ -3,6 +3,7 @@ import {
   arrayUnion,
   collection,
   doc,
+  limit,
   orderBy,
   query,
   setDoc,
@@ -97,6 +98,13 @@ export const buildUserTournamentsQuery = (organizerId) =>
   );
 
 // Realtime query builder for tournament matches — pass to useRealtimeCollection.
+export const buildPublicTournamentsQuery = (maxResults = 80) =>
+  query(
+    collection(db, COLLECTIONS.TOURNAMENTS),
+    where("isPublic", "==", true),
+    limit(maxResults)
+  );
+
 export const buildTournamentMatchesQuery = (tournamentId) =>
   tournamentId
     ? query(collection(db, COLLECTIONS.MATCHES), where("tournamentId", "==", tournamentId))

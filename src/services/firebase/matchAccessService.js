@@ -8,6 +8,7 @@ import {
   setDoc,
   updateDoc,
   where,
+  writeBatch,
 } from "firebase/firestore";
 import db from "../../firebase-config";
 import { COLLECTIONS } from "./constants";
@@ -32,6 +33,11 @@ export const canAccessMatch = (match, uid) => {
 
 /** Submit a request to access a match. */
 export const requestMatchAccess = async ({ matchId, matchTitle, matchOwnerUid, requestedBy, requestedByName, requestedByEmail }) => {
+  const existing = await getUserMatchAccessRequest(matchId, requestedBy);
+  if (existing?.status === MATCH_ACCESS_STATUS.PENDING) {
+    return existing.requestId;
+  }
+
   const requestId = uid();
   await setDoc(requestDoc(requestId), {
     requestId,
@@ -78,15 +84,17 @@ export const getMatchAccessRequests = async (matchId) => {
 
 /** Approve: add uid to match.collaboratorUids and mark request approved. */
 export const approveMatchAccess = async (requestId, matchId, targetUid, resolvedByUid) => {
-  await updateDoc(matchDoc(matchId), {
+  const batch = writeBatch(db);
+  batch.update(matchDoc(matchId), {
     collaboratorUids: arrayUnion(targetUid),
     updatedAt: new Date(),
   });
-  await updateDoc(requestDoc(requestId), {
+  batch.update(requestDoc(requestId), {
     status: MATCH_ACCESS_STATUS.APPROVED,
     resolvedAt: serverTimestamp(),
     resolvedBy: resolvedByUid,
   });
+  await batch.commit();
 };
 
 /** Get all match access requests where the match was created by a given owner uid.

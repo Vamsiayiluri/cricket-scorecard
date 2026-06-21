@@ -27,19 +27,55 @@ service cloud.firestore {
       return isSignedIn() && userRole() in ['scorer', 'admin'];
     }
 
+    function isAdmin() {
+      return isSignedIn() && userRole() in ['scorer', 'admin'];
+    }
+
     function isPublicMatch() {
       return resource.data.isPublic == true;
+    }
+
+    function isPublicTournamentMatch() {
+      let tournamentId = resource.data.tournamentId;
+      return tournamentId is string
+        && get(/databases/$(database)/documents/tournaments/$(tournamentId)).data.isPublic == true;
+    }
+
+    function isMatchOwner() {
+      return isSignedIn()
+        && resource.data.get('createdBy', request.auth.uid) == request.auth.uid;
+    }
+
+    function isMatchCollaborator() {
+      return isSignedIn()
+        && request.auth.uid in resource.data.get('collaboratorUids', []);
+    }
+
+    function isMatchManager() {
+      return isMatchOwner() || isAdmin();
+    }
+
+    function hasSameMatchManagementFields() {
+      return request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.get('collaboratorUids', []) == resource.data.get('collaboratorUids', [])
+        && request.resource.data.get('isPublic', true) == resource.data.get('isPublic', true)
+        && request.resource.data.get('archivedAt', null) == resource.data.get('archivedAt', null)
+        && request.resource.data.get('deletedAt', null) == resource.data.get('deletedAt', null)
+        && request.resource.data.matchDetails == resource.data.matchDetails
+        && request.resource.data.teams == resource.data.teams
+        && request.resource.data.tossDetails == resource.data.tossDetails
+        && request.resource.data.scoringRules == resource.data.scoringRules;
     }
 
     match /users/{userId} {
       allow read: if isSignedIn() && request.auth.uid == userId;
       allow create: if isSignedIn() && request.auth.uid == userId;
       // Self-upgrade: viewer → scorer allowed; no other role changes permitted.
-      allow update: if isSignedIn()
-        && request.auth.uid == userId
-        && (
-          request.resource.data.role == resource.data.role
-          || (resource.data.role == 'viewer' && request.resource.data.role == 'scorer')
+      allow update: if isAdmin()
+        || (
+          isSignedIn()
+          && request.auth.uid == userId
+          && request.resource.data.role == resource.data.role
         );
     }
 
@@ -47,32 +83,85 @@ service cloud.firestore {
       // Public matches: anyone can read. Private matches: owner only.
       // Legacy docs without createdBy fall back to uid — preserves access for original scorer.
       allow read: if isPublicMatch()
-        || (isSignedIn() && resource.data.get('createdBy', request.auth.uid) == request.auth.uid);
+        || isPublicTournamentMatch()
+        || isMatchManager()
+        || isMatchCollaborator();
 
       // Create: scorer/admin only; new doc must carry caller's uid as createdBy.
       allow create: if isScorer() && request.resource.data.createdBy == request.auth.uid;
 
       // Delete: owner only (or legacy docs without createdBy field).
       allow delete: if isScorer()
-        && resource.data.get('createdBy', request.auth.uid) == request.auth.uid;
+        && isMatchManager();
 
       // Update rules (owner-only):
       // - Scheduled: full edits allowed.
       // - In-progress: scoreCard writes allowed; structural fields (teams/toss/rules) locked.
       // - Completed: only metadata (notes, isPublic, playerOfTheMatch) may change.
       allow update: if isScorer()
-        && resource.data.get('createdBy', request.auth.uid) == request.auth.uid
         && (
-          resource.data.status == 'scheduled'
-          ||
-          (resource.data.status == 'in-progress'
-            && request.resource.data.teams == resource.data.teams
-            && request.resource.data.tossDetails == resource.data.tossDetails
-            && request.resource.data.scoringRules == resource.data.scoringRules
+          (
+            isMatchManager()
+            && (
+              resource.data.status == 'scheduled'
+              ||
+              (resource.data.status == 'in-progress'
+                && request.resource.data.teams == resource.data.teams
+                && request.resource.data.tossDetails == resource.data.tossDetails
+                && request.resource.data.scoringRules == resource.data.scoringRules
+              )
+              ||
+              resource.data.status == 'completed'
+            )
           )
           ||
-          resource.data.status == 'completed'
+          (
+            isMatchCollaborator()
+            && hasSameMatchManagementFields()
+          )
         );
+    }
+
+    match /scorer_requests/{requestId} {
+      allow read: if isAdmin()
+        || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow create: if isSignedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.status == 'pending';
+      allow update: if isAdmin()
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status', 'resolvedAt', 'resolvedBy']);
+      allow delete: if false;
+    }
+
+    match /match_access_requests/{requestId} {
+      allow read: if isAdmin()
+        || (
+          isSignedIn()
+          && (
+            resource.data.requestedBy == request.auth.uid
+            || resource.data.matchOwnerUid == request.auth.uid
+          )
+        );
+      allow create: if isScorer()
+        && request.resource.data.requestedBy == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.matchId is string
+        && request.resource.data.matchOwnerUid is string
+        && get(/databases/$(database)/documents/matches/$(request.resource.data.matchId)).data.createdBy
+          == request.resource.data.matchOwnerUid;
+      allow update: if isAdmin()
+        || (
+          isScorer()
+          && resource.data.matchOwnerUid == request.auth.uid
+          && request.resource.data.matchId == resource.data.matchId
+          && request.resource.data.matchOwnerUid == resource.data.matchOwnerUid
+          && request.resource.data.requestedBy == resource.data.requestedBy
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'resolvedAt', 'resolvedBy'])
+        );
+      allow delete: if false;
     }
 
     match /teams/{teamId} {
@@ -100,18 +189,31 @@ service cloud.firestore {
       allow delete: if isSignedIn() && request.auth.uid == userId;
     }
 
-    // Tournaments: organizer-owned CRUD; public tournaments readable by anyone.
+    // Tournaments: public reads; owner/admin management.
     match /tournaments/{tournamentId} {
-      allow read: if resource.data.isPublic == true || (isSignedIn() && resource.data.organizerId == request.auth.uid);
+      allow read: if resource.data.isPublic == true
+        || (isSignedIn() && resource.data.organizerId == request.auth.uid)
+        || isAdmin();
       allow create: if isScorer() && request.resource.data.organizerId == request.auth.uid;
-      allow update: if isScorer() && resource.data.organizerId == request.auth.uid;
-      allow delete: if isScorer() && resource.data.organizerId == request.auth.uid;
+      allow update: if isScorer()
+        && (resource.data.organizerId == request.auth.uid || isAdmin());
+      allow delete: if isScorer()
+        && (resource.data.organizerId == request.auth.uid || isAdmin());
 
-      // Fixtures subcollection: public tournaments expose fixtures to unauthenticated viewers.
+      // Fixtures subcollection: public tournament fixtures are readable by anyone;
+      // only the tournament owner or an admin can create/edit/delete fixtures.
       match /fixtures/{fixtureId} {
-        allow read: if isSignedIn()
-          || get(/databases/$(database)/documents/tournaments/$(tournamentId)).data.isPublic == true;
-        allow create, update, delete: if isScorer();
+        allow read: if get(/databases/$(database)/documents/tournaments/$(tournamentId)).data.isPublic == true
+          || (
+            isSignedIn()
+            && get(/databases/$(database)/documents/tournaments/$(tournamentId)).data.organizerId == request.auth.uid
+          )
+          || isAdmin();
+        allow create, update, delete: if isScorer()
+          && (
+            get(/databases/$(database)/documents/tournaments/$(tournamentId)).data.organizerId == request.auth.uid
+            || isAdmin()
+          );
       }
     }
 

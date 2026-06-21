@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { fetchDiscoverMatches } from "../../services/firebase/discoveryService";
+import {
+  fetchDiscoverMatches,
+  fetchDiscoverTournaments,
+} from "../../services/firebase/discoveryService";
 
-const INITIAL = { live: [], results: [], upcoming: [], all: [], loading: true, error: null };
+const INITIAL = { live: [], results: [], upcoming: [], all: [], tournaments: [], loading: true, error: null };
 
 /**
  * One-time fetch of public matches for the /discover page.
@@ -13,13 +16,13 @@ const useDiscoverMatches = () => {
   useEffect(() => {
     let cancelled = false;
 
-    fetchDiscoverMatches()
-      .then((data) => {
-        if (!cancelled) setState({ ...data, loading: false, error: null });
+    Promise.all([fetchDiscoverMatches(), fetchDiscoverTournaments()])
+      .then(([matchData, tournaments]) => {
+        if (!cancelled) setState({ ...matchData, tournaments, loading: false, error: null });
       })
       .catch((err) => {
         if (!cancelled)
-          setState({ live: [], results: [], upcoming: [], all: [], loading: false, error: err });
+          setState({ live: [], results: [], upcoming: [], all: [], tournaments: [], loading: false, error: err });
       });
 
     return () => {

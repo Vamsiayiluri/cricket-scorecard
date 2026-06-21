@@ -557,6 +557,64 @@ const SearchResultCard = ({ match }) => {
 
 // ─── Skeletons ────────────────────────────────────────────────────────────────
 
+const TournamentDiscoveryCard = ({ tournament }) => {
+  const navigate = useNavigate();
+  const teamCount = tournament.teamIds?.length || 0;
+  const dateLine = [tournament.startDate, tournament.endDate].filter(Boolean).join(" - ");
+
+  return (
+    <Paper
+      variant="outlined"
+      sx={{
+        p: 1.75,
+        borderColor: "divider",
+        borderRadius: 2,
+        transition: "border-color 0.2s",
+        "&:hover": { borderColor: "primary.main" },
+      }}
+    >
+      <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 1 }}>
+        <EmojiEventsIcon sx={{ fontSize: 16, color: "#F59E0B" }} />
+        <Typography variant="body2" sx={{ fontWeight: 800, flex: 1 }} noWrap>
+          {tournament.name}
+        </Typography>
+      </Stack>
+
+      <Stack direction="row" spacing={0.75} sx={{ mb: 1 }} flexWrap="wrap">
+        {tournament.status && (
+          <Chip size="small" label={tournament.status} sx={{ height: 18, fontSize: "0.62rem", fontWeight: 800 }} />
+        )}
+        {tournament.format && (
+          <Chip size="small" label={tournament.format} variant="outlined" sx={{ height: 18, fontSize: "0.62rem" }} />
+        )}
+        <Chip size="small" label={`${teamCount} team${teamCount === 1 ? "" : "s"}`} variant="outlined" sx={{ height: 18, fontSize: "0.62rem" }} />
+      </Stack>
+
+      {tournament.description && (
+        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }} noWrap>
+          {tournament.description}
+        </Typography>
+      )}
+
+      {dateLine && (
+        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1, fontSize: "0.72rem" }}>
+          {dateLine}
+        </Typography>
+      )}
+
+      <AppButton
+        size="small"
+        variant="outlined"
+        fullWidth
+        onClick={() => navigate(`/t/${tournament.tournamentId}`)}
+        sx={{ minHeight: 32, fontSize: "0.78rem" }}
+      >
+        View Tournament
+      </AppButton>
+    </Paper>
+  );
+};
+
 const CardSkeleton = () => (
   <Paper variant="outlined" sx={{ p: 1.75, borderRadius: 2, borderColor: "divider" }}>
     <Skeleton variant="text" width="40%" height={16} sx={{ mb: 0.75 }} />
@@ -583,7 +641,7 @@ const EmptySection = ({ message }) => (
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 const DiscoverPage = () => {
-  const { live, results, upcoming, all, loading, error } = useDiscoverMatches();
+  const { live, results, upcoming, all, tournaments, loading, error } = useDiscoverMatches();
   const [search, setSearch] = useState("");
 
   const searchResults = useMemo(() => {
@@ -732,6 +790,33 @@ const DiscoverPage = () => {
                 {results.map((m) => (
                   <Grid item xs={12} sm={6} md={4} key={m.matchId || m.id}>
                     <ResultCard match={m} />
+                  </Grid>
+                ))}
+              </Grid>
+            )}
+          </Box>
+
+          <Box>
+            <SectionHeader
+              icon={<EmojiEventsIcon sx={{ fontSize: 20, color: "#F59E0B" }} />}
+              title="Public Tournaments"
+              count={loading ? undefined : tournaments.length}
+            />
+            {loading ? (
+              <Grid container spacing={1.5}>
+                {[0, 1, 2].map((i) => (
+                  <Grid item xs={12} sm={6} md={4} key={i}>
+                    <CardSkeleton />
+                  </Grid>
+                ))}
+              </Grid>
+            ) : tournaments.length === 0 ? (
+              <EmptySection message="No public tournaments found." />
+            ) : (
+              <Grid container spacing={1.5}>
+                {tournaments.map((t) => (
+                  <Grid item xs={12} sm={6} md={4} key={t.tournamentId || t.id}>
+                    <TournamentDiscoveryCard tournament={t} />
                   </Grid>
                 ))}
               </Grid>

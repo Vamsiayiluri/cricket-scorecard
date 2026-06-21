@@ -12,7 +12,7 @@ import { useNavigate } from "react-router-dom";
 import useDashboardMatches from "../hooks/firebase/useDashboardMatches";
 import { useAuth } from "../context/AuthContext";
 import { sendVerificationEmail } from "../services/firebase/authService";
-import { getUserScorerRequest, requestScorerRole, REQUEST_STATUS } from "../services/firebase/scorerRequestService";
+import { getUserScorerRequest, REQUEST_STATUS } from "../services/firebase/scorerRequestService";
 import { useToast } from "../context/ToastContext";
 import AddIcon from "@mui/icons-material/Add";
 import SportsCricketIcon from "@mui/icons-material/SportsCricket";
@@ -27,7 +27,6 @@ const DashboardPage = () => {
   const { showToast } = useToast();
   const { ongoing, upcoming, completed, recentActivity, stats, loading, error } =
     useDashboardMatches({ realtime: true });
-  const [requesting, setRequesting] = useState(false);
   const [resendingVerification, setResendingVerification] = useState(false);
   const [scorerRequest, setScorerRequest] = useState(null);
 
@@ -55,24 +54,6 @@ const DashboardPage = () => {
       showToast("Could not send verification email. Please try again.", "error");
     } finally {
       setResendingVerification(false);
-    }
-  };
-
-  const handleRequestScorer = async () => {
-    if (!user?.uid || requesting) return;
-    setRequesting(true);
-    try {
-      await requestScorerRole({
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName,
-      });
-      setScorerRequest({ status: REQUEST_STATUS.PENDING });
-      showToast("Request submitted. Admin will review it shortly.", "success");
-    } catch {
-      showToast("Could not submit request. Please try again.", "error");
-    } finally {
-      setRequesting(false);
     }
   };
 
@@ -218,8 +199,7 @@ const DashboardPage = () => {
             </Stack>
             <AppButton
               variant="outlined"
-              onClick={handleRequestScorer}
-              loading={requesting}
+              onClick={() => navigate("/become-scorer")}
               sx={{ flexShrink: 0, borderColor: "error.main", color: "error.main" }}
             >
               Request Again
@@ -248,8 +228,7 @@ const DashboardPage = () => {
             </Stack>
             <AppButton
               variant="contained"
-              onClick={handleRequestScorer}
-              loading={requesting}
+              onClick={() => navigate("/become-scorer")}
               sx={{ flexShrink: 0 }}
             >
               Become a Scorer

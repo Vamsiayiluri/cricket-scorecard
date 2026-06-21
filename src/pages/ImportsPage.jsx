@@ -113,7 +113,7 @@ const UploadStep = ({ onParsed, onError }) => {
         {parsing && <LinearProgress sx={{ mt: 2 }} />}
       </Paper>
       <Typography variant="caption" color="text.secondary">
-        Only the <strong>ImportData</strong> sheet is read. All other sheets are ignored.
+       The Excel workbook must contain a worksheet named <strong>ImportData</strong>. All other sheets are ignored.
       </Typography>
     </Stack>
   );

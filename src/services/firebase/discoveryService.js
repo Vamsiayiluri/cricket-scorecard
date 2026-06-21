@@ -3,6 +3,7 @@ import db from "../../firebase-config";
 import { COLLECTIONS, MATCH_STATUS } from "./constants";
 import { fetchQuery } from "./firestoreHelpers";
 import { isCompletedMatch } from "../../utils/matchDisplay";
+import { buildPublicTournamentsQuery } from "./tournamentService";
 
 const normalizeStatus = (match) =>
   isCompletedMatch(match) ? { ...match, status: MATCH_STATUS.COMPLETED } : match;
@@ -55,4 +56,17 @@ export const fetchDiscoverMatches = async () => {
   ).slice(0, 10);
 
   return { live, results, upcoming, all: visible };
+};
+
+export const fetchDiscoverTournaments = async () => {
+  const raw = await fetchQuery(buildPublicTournamentsQuery(60));
+
+  return raw
+    .filter((t) => !t.archivedAt)
+    .sort((a, b) => {
+      const at = a?.updatedAt?.toMillis?.() ?? new Date(a?.updatedAt || a?.createdAt || 0).getTime();
+      const bt = b?.updatedAt?.toMillis?.() ?? new Date(b?.updatedAt || b?.createdAt || 0).getTime();
+      return bt - at;
+    })
+    .slice(0, 12);
 };

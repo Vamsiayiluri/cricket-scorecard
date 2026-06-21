@@ -8,6 +8,7 @@ import { PageLoading } from "./components/ui/LoadingState";
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/RegisterPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const BecomeScorerPage = lazy(() => import("./pages/BecomeScorerPage"));
 const MatchCreationPage = lazy(() => import("./pages/MatchCreationPage"));
 const MatchScoring = lazy(() => import("./pages/MatchScoring"));
 const Scorecard = lazy(() => import("./components/match/ScoreCard"));
@@ -39,6 +40,7 @@ const App = () => {
             <Route path="/scorecard/:matchId" element={<PublicScorecardPage />} />
             <Route path="/t/:tournamentId" element={<PublicTournamentPage />} />
             <Route path="/discover" element={<DiscoverPage />} />
+            <Route path="/results" element={<DiscoverPage />} />
 
             {/* Notifications — authenticated users */}
             <Route
@@ -70,7 +72,14 @@ const App = () => {
                 </ProtectedRoute>
               }
             />
-
+            <Route
+              path="/become-scorer"
+              element={
+                <ProtectedRoute>
+                  <BecomeScorerPage />
+                </ProtectedRoute>
+              }
+            />
             {/* Scorer/admin-only routes */}
             <Route
               path="/matches/:matchId"
@@ -149,17 +158,17 @@ const App = () => {
             <Route
               path="/tournaments"
               element={
-                <ScorerRoute>
+                <ProtectedRoute>
                   <TournamentsPage />
-                </ScorerRoute>
+                </ProtectedRoute>
               }
             />
             <Route
               path="/tournaments/:tournamentId"
               element={
-                <ScorerRoute>
+                <ProtectedRoute>
                   <TournamentDetailsPage />
-                </ScorerRoute>
+                </ProtectedRoute>
               }
             />
 

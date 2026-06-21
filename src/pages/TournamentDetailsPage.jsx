@@ -59,7 +59,7 @@ import {
 import { getMatchTitle, isCompletedMatch } from "../utils/matchDisplay";
 import { calculateStandings, getLeader } from "../utils/tournamentStandings";
 import { computeTournamentBatting, computeTournamentBowling, computeTournamentOverview } from "../utils/tournamentStats";
-import { MATCH_STATUS } from "../services/firebase/constants";
+import { MATCH_STATUS, USER_ROLES } from "../services/firebase/constants";
 
 // ── Tournament status chip ────────────────────────────────────────────────────
 
@@ -435,7 +435,7 @@ const BowlerLeaderboard = ({ bowlers }) => {
 const TournamentDetailsPage = () => {
   const { tournamentId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const { showToast } = useToast();
 
   const { data: tournament, loading, error } = useTournament(tournamentId);
@@ -510,7 +510,7 @@ const TournamentDetailsPage = () => {
   if (loading) return <PageLoading text="Loading tournament…" />;
   if (error || !tournament) return <ErrorState message="Tournament not found." />;
 
-  const isOwner = tournament.organizerId === user?.uid;
+  const isOwner = tournament.organizerId === user?.uid || role === USER_ROLES.ADMIN;
 
   const handleEdit = async (formData) => {
     setSaving(true);

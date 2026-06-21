@@ -23,7 +23,6 @@ import {
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import LogoutIcon from "@mui/icons-material/Logout";
-import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
@@ -34,6 +33,7 @@ import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 import StarBorderOutlinedIcon from "@mui/icons-material/StarBorderOutlined";
 import AddCircleOutlinedIcon from "@mui/icons-material/AddCircleOutlined";
 import HowToRegOutlinedIcon from "@mui/icons-material/HowToRegOutlined";
+import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import NotificationBell from "../components/ui/NotificationBell";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
@@ -110,12 +110,13 @@ export const CricVeloLogo = ({ size = 36, showText = true }) => {
 const AppShell = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAuthenticated, isScorer, isViewer, role, logout, user } = useAuth();
+  const { isAuthenticated, isScorer, role, logout, user } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileAnchor, setProfileAnchor] = useState(null);
 
   const isAuthPage = location.pathname === "/login" || location.pathname === "/register";
   const isPublicPage = isPublicPath(location.pathname);
+  const isPublicChrome = isPublicPage && !isAuthenticated;
 
   const userInitial = useMemo(() => {
     const name = user?.displayName || user?.email || "";
@@ -132,7 +133,7 @@ const AppShell = ({ children }) => {
     if (isScorer) {
       return [
         { label: "Dashboard",    path: "/dashboard",    icon: <DashboardOutlinedIcon fontSize="small" /> },
-        { label: "Create Match", path: "/create-match", icon: <AddCircleOutlinedIcon fontSize="small" />, isPrimary: true },
+        { label: "Create Match", path: "/create-match", icon: <AddCircleOutlinedIcon fontSize="small" /> },
         { label: "Teams",        path: "/teams",        icon: <GroupsOutlinedIcon fontSize="small" /> },
         { label: "Players",      path: "/players",      icon: <PersonOutlinedIcon fontSize="small" /> },
         { label: "Tournaments",  path: "/tournaments",  icon: <EmojiEventsOutlinedIcon fontSize="small" /> },
@@ -144,7 +145,9 @@ const AppShell = ({ children }) => {
     return [
       { label: "Dashboard",    path: "/dashboard",    icon: <DashboardOutlinedIcon fontSize="small" /> },
       { label: "Live Matches", path: "/discover",     icon: <SportsCricketIcon fontSize="small" /> },
-      { label: "Notifications",path: "/notifications",icon: <NotificationsNoneIcon fontSize="small" /> },
+      { label: "Tournaments",  path: "/tournaments",  icon: <EmojiEventsOutlinedIcon fontSize="small" /> },
+      { label: "Results",      path: "/results",      icon: <FactCheckOutlinedIcon fontSize="small" /> },
+      { label: "Become a Scorer", path: "/become-scorer", icon: <StarBorderOutlinedIcon fontSize="small" /> },
     ];
   }, [isScorer]);
 
@@ -165,17 +168,21 @@ const AppShell = ({ children }) => {
   const handleProfileOpen = (e) => setProfileAnchor(e.currentTarget);
   const handleProfileClose = () => setProfileAnchor(null);
 
-  const navItemSx = (isSelected) => ({
+  const navItemSx = (isSelected, isPrimary = false) => ({
     borderRadius: 1,
     mb: 0.5,
     py: 1.25,
     px: 2,
     transition: "all 200ms ease",
-    backgroundColor: isSelected ? "rgba(108, 99, 255, 0.12) !important" : "transparent",
-    border: isSelected ? "1px solid rgba(108, 99, 255, 0.25)" : "1px solid transparent",
-    color: isSelected ? "text.primary" : "text.secondary",
+    backgroundColor: isSelected
+      ? "rgba(108, 99, 255, 0.12) !important"
+      : isPrimary
+      ? "rgba(108, 99, 255, 0.08)"
+      : "transparent",
+    border: isSelected || isPrimary ? "1px solid rgba(108, 99, 255, 0.25)" : "1px solid transparent",
+    color: isSelected || isPrimary ? "text.primary" : "text.secondary",
     "& .MuiListItemIcon-root": {
-      color: isSelected ? "#6C63FF" : "text.secondary",
+      color: isSelected || isPrimary ? "#6C63FF" : "text.secondary",
       minWidth: 36,
     },
     "&:hover": {
@@ -215,7 +222,7 @@ const AppShell = ({ children }) => {
                 selected={isSelected}
                 aria-current={isSelected ? "page" : undefined}
                 onClick={() => { navigate(item.path); setMobileOpen(false); }}
-                sx={navItemSx(isSelected)}
+                sx={navItemSx(isSelected, item.isPrimary)}
               >
                 <ListItemIcon>{item.icon}</ListItemIcon>
                 <ListItemText
@@ -227,7 +234,7 @@ const AppShell = ({ children }) => {
           );
         })}
 
-        {isPublicPage && (
+        {isPublicChrome && (
           <>
             <ListItemButton
               component={RouterLink}
@@ -281,37 +288,6 @@ const AppShell = ({ children }) => {
         )}
       </List>
 
-      {/* Become Scorer CTA — viewers only */}
-      {isViewer && (
-        <Box sx={{ mt: 1 }}>
-          <Divider sx={{ mb: 1.5, borderColor: "divider" }} />
-          <Box
-            onClick={() => { navigate("/dashboard"); setMobileOpen(false); }}
-            sx={{
-              cursor: "pointer",
-              px: 2,
-              py: 1.5,
-              borderRadius: 1.5,
-              background: "linear-gradient(135deg, rgba(108,99,255,0.12) 0%, rgba(139,92,246,0.08) 100%)",
-              border: "1px solid rgba(108,99,255,0.22)",
-              "&:hover": { background: "linear-gradient(135deg, rgba(108,99,255,0.18) 0%, rgba(139,92,246,0.12) 100%)" },
-            }}
-          >
-            <Stack direction="row" spacing={1.2} alignItems="center">
-              <StarBorderOutlinedIcon sx={{ fontSize: 18, color: "primary.main" }} />
-              <Box>
-                <Typography variant="body2" sx={{ fontWeight: 700, color: "primary.main", fontSize: "0.85rem" }}>
-                  Become a Scorer
-                </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.3 }}>
-                  Create and score matches
-                </Typography>
-              </Box>
-            </Stack>
-          </Box>
-        </Box>
-      )}
-
       {/* Sidebar footer */}
       <Box sx={{ mt: 1.5, pt: 1.5, borderTop: "1px solid", borderColor: "divider", opacity: 0.6 }}>
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", textAlign: "center" }}>
@@ -325,7 +301,7 @@ const AppShell = ({ children }) => {
     return <>{children}</>;
   }
 
-  const showSidebar = isAuthenticated && !isPublicPage;
+  const showSidebar = isAuthenticated;
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
@@ -354,13 +330,13 @@ const AppShell = ({ children }) => {
                 <MenuIcon />
               </IconButton>
             )}
-            <Box onClick={() => navigate(isPublicPage ? "/" : "/dashboard")} sx={{ cursor: "pointer" }}>
+            <Box onClick={() => navigate(isPublicChrome ? "/" : "/dashboard")} sx={{ cursor: "pointer" }}>
               <CricVeloLogo />
             </Box>
           </Stack>
 
           <Stack direction="row" spacing={1.5} alignItems="center">
-            {isPublicPage && (
+            {isPublicChrome && (
               <Chip
                 label="Live Match Center"
                 size="small"
@@ -378,7 +354,7 @@ const AppShell = ({ children }) => {
               <NotificationBell uid={user?.uid} />
             )}
 
-            {isPublicPage && !isAuthenticated && (
+            {isPublicChrome && (
               <Button
                 component={RouterLink}
                 to="/login"
@@ -551,12 +527,12 @@ const AppShell = ({ children }) => {
         className="animate-fade-in"
         sx={{
           flexGrow: 1,
-          pt: "92px",
+          pt: "68px",
           pb: 8,
           px: { xs: 1.5, sm: 2, md: 3 },
           width: "100%",
-          maxWidth: isPublicPage ? 1040 : "100%",
-          mx: isPublicPage ? "auto" : 0,
+          maxWidth: isPublicChrome ? 1040 : "100%",
+          mx: isPublicChrome ? "auto" : 0,
         }}
       >
         {children}
