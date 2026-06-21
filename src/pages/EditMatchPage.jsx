@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from "react";
-import { Box, Stack, Switch, FormControlLabel } from "@mui/material";
+import { Box, Chip, Paper, Stack, Switch, FormControlLabel, Typography } from "@mui/material";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import HourglassEmptyOutlinedIcon from "@mui/icons-material/HourglassEmptyOutlined";
 import { useNavigate, useParams } from "react-router-dom";
 import PageContainer from "../components/ui/PageContainer";
 import ErrorState from "../components/ui/ErrorState";
@@ -8,6 +10,13 @@ import AppButton from "../components/ui/AppButton";
 import useLiveMatch from "../hooks/firebase/useLiveMatch";
 import { patchMatchById } from "../services/firebase/matchService";
 import { useToast } from "../context/ToastContext";
+import { useAuth } from "../context/AuthContext";
+import {
+  canAccessMatch,
+  getUserMatchAccessRequest,
+  requestMatchAccess,
+  MATCH_ACCESS_STATUS,
+} from "../services/firebase/matchAccessService";
 import {
   validateMatchDetailsStep,
   validateTeamsStep,
@@ -24,14 +33,29 @@ const EditMatchPage = () => {
   const { matchId } = useParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { user } = useAuth();
 
   const { data: match, loading, error } = useLiveMatch(matchId, { enabled: Boolean(matchId) });
   const [saving, setSaving] = useState(false);
+  const [accessRequest, setAccessRequest] = useState(undefined); // undefined = not loaded yet
+  const [submittingRequest, setSubmittingRequest] = useState(false);
 
   const isLive = match?.status === "in-progress";
   const canEditStructure = match?.status === "scheduled";
 
   const [formState, setFormState] = useState(null);
+
+  // Load existing access request when match is available and user doesn't own it
+  React.useEffect(() => {
+    if (!match || !user?.uid) return;
+    if (canAccessMatch(match, user.uid)) {
+      setAccessRequest(null); // owner/collaborator — no need to check
+      return;
+    }
+    getUserMatchAccessRequest(matchId, user.uid)
+      .then(setAccessRequest)
+      .catch(() => setAccessRequest(null));
+  }, [match, user?.uid, matchId]);
 
   React.useEffect(() => {
     if (!match) return;
@@ -155,6 +179,71 @@ const EditMatchPage = () => {
     return (
       <PageContainer title="Edit match">
         <ErrorState message="Match not found." />
+      </PageContainer>
+    );
+  }
+
+  // Access denied — show request UI
+  if (match && user?.uid && !canAccessMatch(match, user.uid)) {
+    const matchTitle = `${match.matchDetails?.teamA || ""} vs ${match.matchDetails?.teamB || ""}`;
+    const isPending = accessRequest?.status === MATCH_ACCESS_STATUS.PENDING;
+    const isRejected = accessRequest?.status === MATCH_ACCESS_STATUS.REJECTED;
+
+    const handleRequestAccess = async () => {
+      if (submittingRequest) return;
+      setSubmittingRequest(true);
+      try {
+        await requestMatchAccess({
+          matchId,
+          matchTitle,
+          matchOwnerUid: match?.createdBy || "",
+          requestedBy: user.uid,
+          requestedByName: user.displayName || "",
+          requestedByEmail: user.email || "",
+        });
+        setAccessRequest({ status: MATCH_ACCESS_STATUS.PENDING });
+        showToast("Access request sent to the match owner.", "success");
+      } catch {
+        showToast("Could not send request. Please try again.", "error");
+      } finally {
+        setSubmittingRequest(false);
+      }
+    };
+
+    return (
+      <PageContainer title="Edit match">
+        <Box sx={{ maxWidth: 520, mx: "auto", mt: 4 }}>
+          <Paper variant="outlined" sx={{ p: 3, borderRadius: 2, textAlign: "center" }}>
+            {isPending
+              ? <HourglassEmptyOutlinedIcon sx={{ fontSize: 44, color: "warning.main", mb: 1.5 }} />
+              : <LockOutlinedIcon sx={{ fontSize: 44, color: "text.disabled", mb: 1.5 }} />}
+            <Typography variant="h4" fontWeight={700} sx={{ mb: 0.75 }}>
+              {isPending ? "Request Pending" : "Access Restricted"}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
+              {isPending
+                ? `Your request to edit "${matchTitle}" has been submitted. The match owner will review it.`
+                : isRejected
+                ? `Your previous access request for "${matchTitle}" was not approved.`
+                : `Only the match creator and approved scorers can edit "${matchTitle}".`}
+            </Typography>
+            {!isPending && (
+              <AppButton
+                variant="contained"
+                onClick={handleRequestAccess}
+                loading={submittingRequest}
+              >
+                {isRejected ? "Request Again" : "Request Access"}
+              </AppButton>
+            )}
+            {isPending && (
+              <Chip
+                label="Awaiting approval"
+                sx={{ bgcolor: "rgba(245,158,11,0.15)", color: "warning.dark", fontWeight: 700 }}
+              />
+            )}
+          </Paper>
+        </Box>
       </PageContainer>
     );
   }

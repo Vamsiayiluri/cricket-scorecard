@@ -153,7 +153,7 @@ const TournamentsPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { showToast } = useToast();
-  const { tournaments, loading } = useUserTournaments();
+  const { tournaments, loading, error } = useUserTournaments();
 
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -229,6 +229,16 @@ const TournamentsPage = () => {
       />
 
       <Divider sx={{ mb: 2.5 }} />
+
+      {/* Query error */}
+      {!loading && error && (
+        <Paper variant="outlined" sx={{ p: 3, borderColor: "error.main", borderRadius: 2, textAlign: "center" }}>
+          <Typography variant="body2" color="error.main" fontWeight={700}>Failed to load tournaments</Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+            {error.message || "Check your connection or Firestore index configuration."}
+          </Typography>
+        </Paper>
+      )}
 
       {/* Loading skeletons */}
       {loading && (

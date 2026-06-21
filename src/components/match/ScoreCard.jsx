@@ -12,7 +12,16 @@ import {
   Checkbox,
   FormControlLabel,
 } from "@mui/material";
-import { useSearchParams } from "react-router-dom";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import HourglassEmptyOutlinedIcon from "@mui/icons-material/HourglassEmptyOutlined";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import {
+  canAccessMatch,
+  getUserMatchAccessRequest,
+  requestMatchAccess,
+  MATCH_ACCESS_STATUS,
+} from "../../services/firebase/matchAccessService";
 import {
   getMatchForScoring,
   persistMatchCompletion,
@@ -131,8 +140,13 @@ const Scorecard = () => {
     }
   };
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [matchData, dispatch] = useReducer(matchReducer, null);
+  const [accessDenied, setAccessDenied] = useState(false);
+  const [accessRequest, setAccessRequest] = useState(null); // existing request for this user+match
+  const [submittingRequest, setSubmittingRequest] = useState(false);
   const [battingTeam, setBattingTeam] = useState(null);
   const [bowlingTeam, setBowlingTeam] = useState(null);
   const [currentInning, setCurrentInning] = useState(null);
@@ -177,6 +191,16 @@ const Scorecard = () => {
             hasScorecard: Boolean(data?.scoreCard),
             innings: data?.scoreCard?.innings?.length || 0,
           });
+
+          if (!canAccessMatch(data, user?.uid)) {
+            setAccessDenied(true);
+            const existingReq = await getUserMatchAccessRequest(matchId, user?.uid).catch(() => null);
+            setAccessRequest(existingReq);
+            // Still store match data so we can show the match title in the denied screen
+            dispatch({ type: "SET_MATCH_DATA", payload: data });
+            return;
+          }
+
           dispatch({
             type: "SET_MATCH_DATA",
             payload: data,
@@ -569,6 +593,79 @@ const Scorecard = () => {
     setCurrentOver([]);
     setIsDialogOpen(false);
   };
+  const handleRequestAccess = async () => {
+    if (!matchId || !user?.uid || submittingRequest) return;
+    setSubmittingRequest(true);
+    try {
+      await requestMatchAccess({
+        matchId,
+        matchTitle: matchData?.matchDetails
+          ? `${matchData.matchDetails.teamA} vs ${matchData.matchDetails.teamB}`
+          : matchId,
+        matchOwnerUid: matchData?.createdBy || "",
+        requestedBy: user.uid,
+        requestedByName: user.displayName || "",
+        requestedByEmail: user.email || "",
+      });
+      setAccessRequest({ status: MATCH_ACCESS_STATUS.PENDING });
+    } finally {
+      setSubmittingRequest(false);
+    }
+  };
+
+  if (accessDenied) {
+    const isPending = accessRequest?.status === MATCH_ACCESS_STATUS.PENDING;
+    const isRejected = accessRequest?.status === MATCH_ACCESS_STATUS.REJECTED;
+    const matchTitle = matchData?.matchDetails
+      ? `${matchData.matchDetails.teamA} vs ${matchData.matchDetails.teamB}`
+      : "this match";
+
+    return (
+      <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 520, mx: "auto", mt: 6 }}>
+        <Paper variant="outlined" sx={{ p: 3, borderRadius: 2, textAlign: "center" }}>
+          {isPending ? (
+            <HourglassEmptyOutlinedIcon sx={{ fontSize: 44, color: "warning.main", mb: 1.5 }} />
+          ) : (
+            <LockOutlinedIcon sx={{ fontSize: 44, color: "text.disabled", mb: 1.5 }} />
+          )}
+          <Typography variant="h4" fontWeight={700} sx={{ mb: 0.75 }}>
+            {isPending ? "Request Pending" : "Access Restricted"}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
+            {isPending
+              ? `Your request to score "${matchTitle}" has been submitted. The match owner will review it.`
+              : isRejected
+              ? `Your previous access request for "${matchTitle}" was not approved.`
+              : `Only the match creator and approved scorers can score "${matchTitle}".`}
+          </Typography>
+          <Stack spacing={1.5} alignItems="center">
+            {!isPending && (
+              <Button
+                variant="contained"
+                onClick={handleRequestAccess}
+                disabled={submittingRequest}
+              >
+                {submittingRequest ? "Sending…" : isRejected ? "Request Again" : "Request Access"}
+              </Button>
+            )}
+            {isPending && (
+              <Chip
+                label="Awaiting approval"
+                sx={{ bgcolor: "rgba(245,158,11,0.15)", color: "warning.dark", fontWeight: 700 }}
+              />
+            )}
+            <Button
+              variant="outlined"
+              onClick={() => navigate(`/scorecard/${matchId}`)}
+            >
+              View Scorecard
+            </Button>
+          </Stack>
+        </Paper>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ p: { xs: 1, md: 2 } }}>
       {matchData && currentInning && !isInningsOver && !showScoreCard && (

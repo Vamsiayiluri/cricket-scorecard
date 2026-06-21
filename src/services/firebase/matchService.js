@@ -74,6 +74,7 @@ export const buildMatchFromForm = (formData) => {
     updatedAt: new Date(),
     isPublic: formData?.isPublic ?? true,
     createdBy: formData?.createdBy || "",
+    collaboratorUids: [],
     tournamentId: formData?.tournamentId || null,
     lifecyclePhase: "scheduled",
     archivedAt: null,

@@ -7,6 +7,7 @@ export const COLLECTIONS = {
   TOURNAMENTS: "tournaments",
   IMPORTS: "imports",
   SCORER_REQUESTS: "scorer_requests",
+  MATCH_ACCESS_REQUESTS: "match_access_requests",
 };
 
 /** User roles — lightweight RBAC. */
