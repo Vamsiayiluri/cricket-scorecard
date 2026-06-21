@@ -2,26 +2,6 @@
 
 > Ball-by-ball scoring, tournament management, and live public scorecards for grassroots cricket.
 
----
-
-## Table of Contents
-
-- [Overview](#overview)
-- [Features](#features)
-- [Screenshots](#screenshots)
-- [Setup Instructions](#setup-instructions)
-- [Build & Deployment](#build--deployment)
-- [Architecture](#architecture)
-- [Folder Structure](#folder-structure)
-- [User Roles](#user-roles)
-- [Tournament Features](#tournament-features)
-- [Import Features](#import-features)
-- [Troubleshooting](#troubleshooting)
-- [Future Roadmap](#future-roadmap)
-- [Documentation](#documentation)
-- [License](#license)
-
----
 
 ## Overview
 
@@ -51,18 +31,6 @@ Built with **React + Vite + Firebase**, it requires no server to deploy and runs
 | **Role-Based Access Control** | Viewer / Scorer / Admin roles with route and service enforcement |
 | **Firebase Analytics** | Key event tracking (match created, completed, tournament created, import completed) |
 | **Sentry Error Monitoring** | Runtime error capture with context |
-
----
-
-## Screenshots
-
-| Dashboard | Live Scoring | Public Scorecard |
-|---|---|---|
-| *(screenshot)* | *(screenshot)* | *(screenshot)* |
-
-| Tournament Page | Import Wizard | Player Profile |
-|---|---|---|
-| *(screenshot)* | *(screenshot)* | *(screenshot)* |
 
 ---
 
